@@ -99,7 +99,7 @@ class RemoteActivity : AppCompatActivity() {
                 PlaybackState.ERROR -> R.string.state_error
                 else -> R.string.state_idle
             },
-        )
+        ) + if (s.videoHeight > 0) " · ${s.videoHeight}p" else ""
         if (s.error != null) showError(s.error) else b.error.visibility = android.view.View.GONE
         playing = s.state == PlaybackState.PLAYING || s.state == PlaybackState.BUFFERING
         b.play.setIconResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play)

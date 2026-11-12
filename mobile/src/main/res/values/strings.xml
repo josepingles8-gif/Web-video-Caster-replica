@@ -65,4 +65,5 @@
     <string name="clear">Borrar todo</string>
     <string name="cleared">Lista borrada</string>
     <string name="empty_list">Nada por aquí todavía</string>
+    <string name="quality_best">Mejor calidad</string>
 </resources>

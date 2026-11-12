@@ -13,7 +13,10 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.beamcast.protocol.ControlAction
 import com.beamcast.protocol.ControlRequest
@@ -140,7 +143,24 @@ object PlaybackManager {
     }
 
     private fun buildPlayer(): ExoPlayer {
-        val p = ExoPlayer.Builder(app).build()
+        // Quality first: on a TV always pick the best rendition the decoder supports instead of
+        // adapting down to the bandwidth estimate or to a small viewport, and buffer further ahead.
+        val selector = DefaultTrackSelector(app)
+        selector.parameters = selector.buildUponParameters()
+            .setForceHighestSupportedBitrate(true)
+            .clearViewportSizeConstraints()
+            .clearVideoSizeConstraints()
+            .build()
+        val meter = DefaultBandwidthMeter.Builder(app).setInitialBitrateEstimate(25_000_000L).build()
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(30_000, 120_000, 2_500, 5_000)
+            .build()
+        val p = ExoPlayer.Builder(app)
+            .setTrackSelector(selector)
+            .setBandwidthMeter(meter)
+            .setLoadControl(loadControl)
+            .setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT)
+            .build()
         p.setAudioAttributes(
             AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
             true,
@@ -150,6 +170,7 @@ object PlaybackManager {
                 if (playbackState == Player.STATE_READY) started = true
                 ui?.onChanged()
             }
+            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) { ui?.onChanged() }
             override fun onIsPlayingChanged(isPlaying: Boolean) { ui?.onChanged() }
             override fun onPlayerError(e: PlaybackException) {
                 error = "${e.errorCodeName}${e.cause?.message?.let { ": $it" } ?: ""}"
@@ -164,6 +185,7 @@ object PlaybackManager {
         var state = PlaybackState.IDLE
         var pos = 0L
         var dur = 0L
+        var height = 0
         if (hasMedia) {
             state = when {
                 error != null -> PlaybackState.ERROR
@@ -178,10 +200,11 @@ object PlaybackManager {
             }
             if (p != null && !isImage) {
                 pos = p.currentPosition.coerceAtLeast(0)
+                height = minOf(p.videoSize.width, p.videoSize.height).takeIf { it > 0 } ?: p.videoSize.height
                 dur = if (p.duration == C.TIME_UNSET || p.isCurrentMediaItemLive) 0 else p.duration.coerceAtLeast(0)
             }
         }
-        return PlaybackStatus(state, pos, dur, volume(), if (hasMedia) title else null, if (hasMedia) url else null, error)
+        return PlaybackStatus(state, pos, dur, volume(), if (hasMedia) title else null, if (hasMedia) url else null, error, height)
     }
 
     fun control(req: ControlRequest): PlaybackStatus {

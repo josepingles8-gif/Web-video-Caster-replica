@@ -314,9 +314,9 @@ class BrowserActivity : AppCompatActivity() {
         val view = LayoutInflater.from(this).inflate(R.layout.sheet_media, null)
         val container = view.findViewById<ViewGroup>(R.id.items)
         view.findViewById<TextView>(R.id.empty).visibility = if (detected.isEmpty()) View.VISIBLE else View.GONE
-        for (m in detected) {
+        for (m in MediaClassifier.sortByQuality(detected) { it.url }) {
             val row = LayoutInflater.from(this).inflate(R.layout.item_media, container, false)
-            row.findViewById<TextView>(R.id.kind).setText(
+            val kindLabel = getString(
                 when (m.kind) {
                     MediaKind.HLS -> R.string.kind_hls
                     MediaKind.DASH -> R.string.kind_dash
@@ -324,6 +324,11 @@ class BrowserActivity : AppCompatActivity() {
                     MediaKind.AUDIO -> R.string.kind_audio
                 },
             )
+            val quality = when {
+                MediaClassifier.isAdaptiveMaster(m.url) -> getString(R.string.quality_best)
+                else -> MediaClassifier.qualityHint(m.url)?.let { "${it}p" }
+            }
+            row.findViewById<TextView>(R.id.kind).text = if (quality != null) "$kindLabel · $quality" else kindLabel
             row.findViewById<TextView>(R.id.host).text = UrlInput.host(m.url) ?: ""
             row.findViewById<TextView>(R.id.url).text = UrlInput.shorten(m.url, 70)
             row.findViewById<View>(R.id.cast).setOnClickListener {

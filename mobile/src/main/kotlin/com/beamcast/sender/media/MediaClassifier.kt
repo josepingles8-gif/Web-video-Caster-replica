@@ -34,4 +34,29 @@ object MediaClassifier {
     }
 
     fun guessMime(urlOrName: String): String? = mimes[extensionOf(urlOrName)]
+
+    private val qualityRegex = Regex("(?<![0-9])(4320|2160|1440|1080|720|576|480|360|240|144)p?(?![0-9])", RegexOption.IGNORE_CASE)
+    private val masterRegex = Regex("master|manifest|playlist|index", RegexOption.IGNORE_CASE)
+
+    /** Vertical resolution mentioned in the URL path (e.g. 1080 for ".../video_1080p.mp4"), or null. */
+    fun qualityHint(url: String): Int? {
+        val path = url.substringBefore('#').substringBefore('?').substringAfter("://").substringAfter('/', "")
+        return qualityRegex.findAll(path).mapNotNull { it.groupValues[1].toIntOrNull() }.maxOrNull()
+    }
+
+    /** True for adaptive manifests that are not pinned to one rendition, so the TV can pick the best one. */
+    fun isAdaptiveMaster(url: String): Boolean {
+        val kind = classify(url)
+        if (kind != MediaKind.HLS && kind != MediaKind.DASH) return false
+        if (kind == MediaKind.DASH) return true
+        val name = url.substringBefore('#').substringBefore('?').substringAfterLast('/')
+        return qualityHint(url) == null || masterRegex.containsMatchIn(name)
+    }
+
+    /** Best-quality candidates first: adaptive masters, then higher resolution hints; stable otherwise. */
+    fun <T> sortByQuality(items: List<T>, url: (T) -> String): List<T> =
+        items.sortedWith(
+            compareByDescending<T> { isAdaptiveMaster(url(it)) }
+                .thenByDescending { qualityHint(url(it)) ?: 0 },
+        )
 }

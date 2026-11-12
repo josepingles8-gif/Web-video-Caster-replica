@@ -38,4 +38,25 @@ class MediaClassifierTest {
         assertEquals("1:05", TimeFormat.format(65_000))
         assertEquals("1:01:01", TimeFormat.format(3_661_000))
     }
+
+    @Test fun readsQualityHintFromPath() {
+        assertEquals(1080, MediaClassifier.qualityHint("https://a.com/v/clip_1080p.mp4?x=360"))
+        assertEquals(720, MediaClassifier.qualityHint("https://cdn1080.a.com/hls/720/index.m3u8"))
+        assertNull(MediaClassifier.qualityHint("https://a.com/v/12345678/clip.mp4"))
+    }
+
+    @Test fun sortsMastersAndHigherQualityFirst() {
+        val urls = listOf(
+            "https://a.com/v/360p.mp4",
+            "https://a.com/hls/480p/chunklist.m3u8",
+            "https://a.com/v/1080p.mp4",
+            "https://a.com/hls/master.m3u8",
+        )
+        assertEquals(
+            listOf(urls[3], urls[2], urls[1], urls[0]),
+            MediaClassifier.sortByQuality(urls) { it },
+        )
+        assertTrue(MediaClassifier.isAdaptiveMaster(urls[3]))
+        assertFalse(MediaClassifier.isAdaptiveMaster(urls[1]))
+    }
 }

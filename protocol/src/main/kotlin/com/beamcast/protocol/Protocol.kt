@@ -82,6 +82,8 @@ data class PlaybackStatus(
     val title: String? = null,
     val url: String? = null,
     val error: String? = null,
+    /** Resolution actually being decoded, as the short side in pixels (1080 for 1080p). 0 = unknown / no video. */
+    val videoHeight: Int = 0,
 )
 
 @Serializable

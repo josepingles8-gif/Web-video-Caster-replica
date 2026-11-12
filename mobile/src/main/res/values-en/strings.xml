@@ -65,4 +65,5 @@
     <string name="clear">Clear all</string>
     <string name="cleared">List cleared</string>
     <string name="empty_list">Nothing here yet</string>
+    <string name="quality_best">Best quality</string>
 </resources>
