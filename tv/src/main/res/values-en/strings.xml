@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BeamCast Receiver</string>
+    <string name="device_label">This TV\'s name</string>
+    <string name="change_name">Change name</string>
+    <string name="name_dialog_title">TV name</string>
+    <string name="name_hint">Living room</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="address_label">Address for manual connection</string>
+    <string name="address_none">No network connection</string>
+    <string name="instruction">Open BeamCast on your phone, join the same Wi‑Fi network and pick this TV.</string>
+    <string name="status_starting">Starting…</string>
+    <string name="status_visible">Ready: visible on your local network</string>
+    <string name="status_no_network">No network: connect the TV to Wi‑Fi or Ethernet</string>
+    <string name="status_failed">Could not start the receiver, retrying…</string>
+    <string name="playback_error">Playback error: %1$s</string>
+    <string name="channel_name">Receiver</string>
+    <string name="notification_title">BeamCast Receiver is running</string>
+    <string name="notification_text">Waiting for your phone</string>
+</resources>
