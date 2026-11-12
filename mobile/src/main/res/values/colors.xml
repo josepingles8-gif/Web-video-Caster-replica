@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bc_primary">#00796B</color>
+    <color name="bc_on_primary">#FFFFFF</color>
+    <color name="bc_primary_container">#B2DFDB</color>
+    <color name="bc_on_primary_container">#00201C</color>
+    <color name="bc_secondary">#3949AB</color>
+    <color name="bc_on_secondary">#FFFFFF</color>
+    <color name="bc_secondary_container">#DDE1FF</color>
+    <color name="bc_on_secondary_container">#00105C</color>
+    <color name="bc_surface">#FAFDFB</color>
+    <color name="bc_on_surface">#191C1B</color>
+    <color name="ic_bg">#2B2F77</color>
+</resources>

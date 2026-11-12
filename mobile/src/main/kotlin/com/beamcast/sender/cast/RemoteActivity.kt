@@ -32,6 +32,7 @@ class RemoteActivity : AppCompatActivity() {
         device = CastSession.device.value
         if (device == null) { finish(); return }
         b.toolbar.subtitle = device?.name
+        startPolling(device!!)
 
         b.play.setOnClickListener { send(if (playing) ControlAction.PAUSE else ControlAction.PLAY) }
         b.back10.setOnClickListener { send(ControlAction.SEEK_RELATIVE, -10_000) }
@@ -63,9 +64,7 @@ class RemoteActivity : AppCompatActivity() {
 
     private var volDragging = false
 
-    override fun onStart() {
-        super.onStart()
-        val d = device ?: return
+    private fun startPolling(d: Device) {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (true) {

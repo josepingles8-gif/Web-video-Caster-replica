@@ -7,6 +7,7 @@ import com.beamcast.protocol.ErrorResponse
 import com.beamcast.protocol.LoadRequest
 import com.beamcast.protocol.PlaybackStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.serialization.encodeToString
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.net.HttpURLConnection
