@@ -11,6 +11,8 @@ import kotlinx.serialization.json.Json
  *   GET  /status   -> PlaybackStatus
  *   POST /load     <- LoadRequest     -> PlaybackStatus
  *   POST /control  <- ControlRequest  -> PlaybackStatus
+ *   POST /key      <- KeyRequest      -> RemoteResult   (TV remote: navigate the TV itself)
+ *   POST /text     <- TextRequest     -> RemoteResult   (type into the focused text field on the TV)
  *
  * Errors: non-2xx with an ErrorResponse body. All bodies are UTF-8 JSON.
  */
@@ -23,6 +25,8 @@ object BeamProtocol {
     const val PATH_STATUS = "/status"
     const val PATH_LOAD = "/load"
     const val PATH_CONTROL = "/control"
+    const val PATH_KEY = "/key"
+    const val PATH_TEXT = "/text"
     const val CONTENT_TYPE = "application/json; charset=utf-8"
 
     val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; explicitNulls = false }
@@ -33,6 +37,8 @@ data class DeviceInfo(
     val name: String,
     val appVersion: String,
     val protocolVersion: Int = BeamProtocol.VERSION,
+    /** True when the receiver's system remote service (accessibility) is enabled, so /key can navigate the whole TV. */
+    val remoteEnabled: Boolean = false,
 )
 
 @Serializable
@@ -45,7 +51,16 @@ data class LoadRequest(
     val headers: Map<String, String> = emptyMap(),
     val startPositionMs: Long = 0,
     val subtitleUrl: String? = null,
+    /** One of [VideoQuality]. Only matters for adaptive (HLS/DASH) streams. */
+    val quality: String = VideoQuality.MAX,
 )
+
+object VideoQuality {
+    /** Adapt to the measured bandwidth (fewer stalls, may drop resolution). */
+    const val AUTO = "auto"
+    /** Always the best rendition the TV can decode. */
+    const val MAX = "max"
+}
 
 object ControlAction {
     const val PLAY = "play"
@@ -57,6 +72,8 @@ object ControlAction {
     const val SEEK_RELATIVE = "seekRelative"
     /** value = 0..100 */
     const val VOLUME = "volume"
+    /** value = 0 for [VideoQuality.AUTO], 1 for [VideoQuality.MAX]; applies to the current playback immediately. */
+    const val QUALITY = "quality"
 }
 
 @Serializable
@@ -84,6 +101,44 @@ data class PlaybackStatus(
     val error: String? = null,
     /** Resolution actually being decoded, as the short side in pixels (1080 for 1080p). 0 = unknown / no video. */
     val videoHeight: Int = 0,
+    /** One of [VideoQuality]: the mode currently applied. */
+    val quality: String = VideoQuality.MAX,
+)
+
+/** Keys accepted by POST /key. */
+object RemoteKey {
+    const val UP = "up"
+    const val DOWN = "down"
+    const val LEFT = "left"
+    const val RIGHT = "right"
+    const val OK = "ok"
+    const val BACK = "back"
+    const val HOME = "home"
+    const val RECENTS = "recents"
+    const val VOLUME_UP = "volumeUp"
+    const val VOLUME_DOWN = "volumeDown"
+    const val MUTE = "mute"
+    const val PLAY_PAUSE = "playPause"
+    const val REWIND = "rewind"
+    const val FAST_FORWARD = "fastForward"
+    const val BACKSPACE = "backspace"
+    val ALL = setOf(UP, DOWN, LEFT, RIGHT, OK, BACK, HOME, RECENTS, VOLUME_UP, VOLUME_DOWN, MUTE, PLAY_PAUSE, REWIND, FAST_FORWARD, BACKSPACE)
+}
+
+@Serializable
+data class KeyRequest(val key: String)
+
+/** replace = true sets the whole field, false appends to what is already there. */
+@Serializable
+data class TextRequest(val text: String, val replace: Boolean = false)
+
+@Serializable
+data class RemoteResult(
+    /** False when the key could not be delivered (see [message]). */
+    val ok: Boolean,
+    /** Mirrors [DeviceInfo.remoteEnabled] so the phone can prompt the user to enable the service on the TV. */
+    val remoteEnabled: Boolean,
+    val message: String? = null,
 )
 
 @Serializable

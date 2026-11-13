@@ -28,8 +28,12 @@ Todos los cuerpos son JSON UTF-8. Los errores devuelven un código no 2xx con un
 | GET    | `/status`  | —              | `PlaybackStatus` |
 | POST   | `/load`    | `LoadRequest`  | `PlaybackStatus` |
 | POST   | `/control` | `ControlRequest` | `PlaybackStatus` |
+| POST   | `/key`     | `KeyRequest`   | `RemoteResult`   |
+| POST   | `/text`    | `TextRequest`  | `RemoteResult`   |
 
-Las acciones de `ControlRequest` son `play`, `pause`, `stop`, `seek`, `seekRelative` y `volume`.
+Las acciones de `ControlRequest` son `play`, `pause`, `stop`, `seek`, `seekRelative`, `volume` y `quality` (0 = Auto, 1 = Máxima).
+
+`/key` y `/text` convierten el teléfono en el mando de la TV (flechas, OK, atrás, inicio, volumen, teclas multimedia y escritura de texto). Para navegar por toda la TV hay que activar una vez «BeamCast Receiver» en Ajustes > Accesibilidad del televisor; el volumen y las teclas multimedia funcionan sin activarlo.
 
 ## Compilar
 
@@ -65,7 +69,8 @@ adb -s <ip-de-la-tv>:5555 install -r tv/build/outputs/apk/debug/<archivo>.apk
 2. Abre BeamCast en la TV y espera a que aparezca el receptor.
 3. En el teléfono, abre BeamCast y navega a una página con vídeo.
 4. Pulsa el vídeo detectado y elige enviarlo a la TV.
-5. Usa la pantalla de control remoto para pausar, avanzar o ajustar el volumen.
+5. Usa la pantalla de control remoto para pausar, avanzar, ajustar el volumen o cambiar la calidad (Auto / Máxima).
+6. Desde el menú, «Control remoto de TV» abre un mando completo para navegar por el televisor.
 6. Para enviar un archivo local, elígelo desde la pantalla de archivos.
 
 ## Limitaciones
