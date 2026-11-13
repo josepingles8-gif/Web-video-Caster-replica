@@ -11,5 +11,6 @@
     <item android:id="@+id/action_history" android:title="@string/action_history" app:showAsAction="never" />
     <item android:id="@+id/action_desktop" android:checkable="true" android:title="@string/action_desktop" app:showAsAction="never" />
     <item android:id="@+id/action_tv_remote" android:title="@string/action_tv_remote" app:showAsAction="never" />
+    <item android:id="@+id/action_tv_update" android:title="@string/action_tv_update" app:showAsAction="never" />
     <item android:id="@+id/action_local" android:title="@string/action_local" app:showAsAction="never" />
 </menu>

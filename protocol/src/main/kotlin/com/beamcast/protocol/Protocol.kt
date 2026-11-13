@@ -14,6 +14,8 @@ import kotlinx.serialization.json.Json
  *   POST /key      <- KeyRequest      -> RemoteResult   (TV remote: navigate the TV itself)
  *   POST /text     <- TextRequest     -> RemoteResult   (type into the focused text field on the TV)
  *
+ *   PUT  /update   <- receiver APK bytes               (the TV then asks the user to install it)
+ *
  * Errors: non-2xx with an ErrorResponse body. All bodies are UTF-8 JSON.
  */
 object BeamProtocol {
@@ -27,6 +29,7 @@ object BeamProtocol {
     const val PATH_CONTROL = "/control"
     const val PATH_KEY = "/key"
     const val PATH_TEXT = "/text"
+    const val PATH_UPDATE = "/update"
     const val CONTENT_TYPE = "application/json; charset=utf-8"
 
     val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; explicitNulls = false }
@@ -39,6 +42,8 @@ data class DeviceInfo(
     val protocolVersion: Int = BeamProtocol.VERSION,
     /** True when the receiver's system remote service (accessibility) is enabled, so /key can navigate the whole TV. */
     val remoteEnabled: Boolean = false,
+    /** Receiver build number; 0 for receivers that cannot be updated from the phone. */
+    val versionCode: Int = 0,
 )
 
 @Serializable

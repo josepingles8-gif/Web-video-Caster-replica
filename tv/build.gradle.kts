@@ -11,8 +11,12 @@ android {
         applicationId = "com.beamcast.receiver"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
+        versionCode = (project.property("beamcastVersionCode") as String).toInt()
         versionName = "1.0"
+    }
+    signingConfigs {
+        // Fixed key kept in the repository so every build can update an installed one in place.
+        getByName("debug") { storeFile = rootProject.file("keystore/debug.keystore") }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

@@ -37,11 +37,12 @@ class ReceiverService : Service() {
         super.onCreate()
         startAsForeground()
         val router = RequestRouter(AppPlayerController(this), AppRemoteController(this)) {
-            val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull()
-            DeviceInfo(DevicePrefs.name(this), version ?: "1.0")
+            val pkg = runCatching { packageManager.getPackageInfo(packageName, 0) }.getOrNull()
+            val code = pkg?.let { androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(it).toInt() } ?: 0
+            DeviceInfo(DevicePrefs.name(this), pkg?.versionName ?: "1.0", versionCode = code)
         }
         try {
-            val s = BeamServer.startWithFallback(router)
+            val s = BeamServer.startWithFallback(router) { apk -> com.beamcast.receiver.update.SelfUpdater.install(this, apk) }
             server = s
             nsd = NsdAdvertiser(this).also { it.start(DevicePrefs.name(this), s.listeningPort) }
         } catch (e: IOException) {

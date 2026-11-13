@@ -50,7 +50,9 @@ import com.beamcast.sender.ui.DevicePicker
 import com.beamcast.sender.ui.applySystemBarsPadding
 import com.beamcast.sender.ui.castLocalFile
 import com.beamcast.sender.ui.castRequest
+import com.beamcast.sender.ui.offerTvUpdate
 import com.beamcast.sender.ui.openTvRemote
+import com.beamcast.sender.ui.updateTvApp
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.launch
 
@@ -105,7 +107,7 @@ class BrowserActivity : AppCompatActivity() {
         })
 
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) { CastSession.device.collect { invalidateOptionsMenu() } }
+            repeatOnLifecycle(Lifecycle.State.STARTED) { CastSession.device.collect { invalidateOptionsMenu(); offerTvUpdate(it) } }
         }
         store.lastDevice?.let { d ->
             // A saved Chromecast is only usable with a live Cast session, so it is not restored.
@@ -274,7 +276,9 @@ class BrowserActivity : AppCompatActivity() {
             if (store.bookmarks.contains(url)) R.string.bookmark_remove else R.string.bookmark_add,
         )
         val connected = CastSession.device.value != null
-        menu.findItem(R.id.action_tv_remote).isVisible = CastSession.device.value?.type.let { it == null || it == DeviceType.BEAM }
+        val beam = CastSession.device.value?.type.let { it == null || it == DeviceType.BEAM }
+        menu.findItem(R.id.action_tv_remote).isVisible = beam
+        menu.findItem(R.id.action_tv_update).isVisible = beam
         menu.findItem(R.id.action_cast).apply {
             setIcon(if (connected) R.drawable.ic_cast_connected else R.drawable.ic_cast)
             title = CastSession.device.value?.let { getString(R.string.connected_to, it.name) } ?: getString(R.string.action_cast)
@@ -290,6 +294,7 @@ class BrowserActivity : AppCompatActivity() {
             R.id.action_cast -> DevicePicker.show(this) { }
             R.id.action_media -> showMediaSheet()
             R.id.action_tv_remote -> openTvRemote()
+            R.id.action_tv_update -> updateTvApp()
             R.id.action_desktop -> { desktop = !desktop; applyDesktop(); b.web.reload(); invalidateOptionsMenu() }
             R.id.action_bookmark -> toggleBookmark()
             R.id.action_bookmarks -> entries.launch(Intent(this, EntriesActivity::class.java))

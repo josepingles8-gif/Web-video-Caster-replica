@@ -107,4 +107,13 @@
     <string name="chromecast_session_failed">Could not start the Chromecast session.</string>
     <string name="chromecast_timeout">Timed out connecting to the Chromecast.</string>
     <string name="chromecast_not_connected">Not connected to a Chromecast.</string>
+    <string name="action_tv_update">Update TV app</string>
+    <string name="tvupdate_available">A new version of BeamCast is available for your TV. Send it now?</string>
+    <string name="tvupdate_send">Update</string>
+    <string name="tvupdate_later">Not now</string>
+    <string name="tvupdate_sending">Sending the update to the TV…</string>
+    <string name="tvupdate_sent">Update sent. Accept the installation on the TV with its remote, then open BeamCast Receiver again.</string>
+    <string name="tvupdate_current">The TV already has the latest version.</string>
+    <string name="tvupdate_unsupported">The app on the TV predates this feature. Install the TV APK by hand one last time; later updates will come from the phone.</string>
+    <string name="tvupdate_failed">Could not update the TV: %1$s</string>
 </resources>

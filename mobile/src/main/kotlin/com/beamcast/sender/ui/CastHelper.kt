@@ -78,3 +78,63 @@ fun AppCompatActivity.openTvRemote() {
     val current = CastSession.device.value
     if (current == null) DevicePicker.show(this) { open(it) } else open(current)
 }
+
+private const val TV_APK = "beamcast-tv.apk"
+private var updateOffered = false
+
+private fun AppCompatActivity.ownVersionCode(): Int =
+    androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(packageManager.getPackageInfo(packageName, 0)).toInt()
+
+/** Pushes the receiver APK bundled in this app to the TV, which then asks the user to install it. */
+private suspend fun AppCompatActivity.sendTvUpdate(device: Device) {
+    Toast.makeText(this, R.string.tvupdate_sending, Toast.LENGTH_SHORT).show()
+    val message = try {
+        val size = withContext(Dispatchers.IO) { assets.open(TV_APK).use { it.skip(Long.MAX_VALUE) } }
+        com.beamcast.sender.cast.CastClient.update(device, size) { assets.open(TV_APK) }
+        getString(R.string.tvupdate_sent)
+    } catch (e: Exception) {
+        getString(R.string.tvupdate_failed, e.message)
+    }
+    if (!isFinishing) androidx.appcompat.app.AlertDialog.Builder(this).setMessage(message).setPositiveButton(android.R.string.ok, null).show()
+}
+
+/** Menu action: update the receiver, explaining why when it cannot be done. */
+fun AppCompatActivity.updateTvApp() {
+    val device = CastSession.device.value
+    if (device == null) {
+        DevicePicker.show(this) { updateTvApp() }
+        return
+    }
+    if (device.type != DeviceType.BEAM) {
+        Toast.makeText(this, R.string.tv_remote_beam_only, Toast.LENGTH_LONG).show()
+        return
+    }
+    lifecycleScope.launch {
+        val info = try {
+            com.beamcast.sender.cast.CastClient.info(device)
+        } catch (e: Exception) {
+            Toast.makeText(this@updateTvApp, getString(R.string.tvupdate_failed, e.message), Toast.LENGTH_LONG).show()
+            return@launch
+        }
+        when {
+            info.versionCode == 0 -> Toast.makeText(this@updateTvApp, R.string.tvupdate_unsupported, Toast.LENGTH_LONG).show()
+            info.versionCode >= ownVersionCode() -> Toast.makeText(this@updateTvApp, R.string.tvupdate_current, Toast.LENGTH_LONG).show()
+            else -> sendTvUpdate(device)
+        }
+    }
+}
+
+/** Once per app run, offers the update when the connected receiver is older than the bundled one. */
+fun AppCompatActivity.offerTvUpdate(device: Device?) {
+    if (device == null || device.type != DeviceType.BEAM || updateOffered) return
+    lifecycleScope.launch {
+        val code = runCatching { com.beamcast.sender.cast.CastClient.info(device).versionCode }.getOrNull() ?: return@launch
+        if (updateOffered || isFinishing || code == 0 || code >= ownVersionCode()) return@launch
+        updateOffered = true
+        androidx.appcompat.app.AlertDialog.Builder(this@offerTvUpdate)
+            .setMessage(R.string.tvupdate_available)
+            .setPositiveButton(R.string.tvupdate_send) { _, _ -> lifecycleScope.launch { sendTvUpdate(device) } }
+            .setNegativeButton(R.string.tvupdate_later, null)
+            .show()
+    }
+}
