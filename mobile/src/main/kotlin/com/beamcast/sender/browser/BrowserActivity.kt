@@ -145,6 +145,18 @@ class BrowserActivity : AppCompatActivity() {
 
     /** Returns true if a page load was started. Direct media links go straight to the cast flow. */
     private fun handleIntent(intent: Intent): Boolean {
+        val file = when (intent.action) {
+            Intent.ACTION_SEND -> sharedStream(intent)
+            Intent.ACTION_VIEW -> intent.data?.takeIf { it.scheme == "content" || it.scheme == "file" }
+            else -> null
+        }
+        if (file != null) {
+            if (Build.VERSION.SDK_INT >= 33 &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            castLocalFile(file)
+            return false
+        }
         val url = when (intent.action) {
             Intent.ACTION_VIEW -> intent.dataString
             Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)?.let { UrlInput.extractUrl(it) ?: UrlInput.resolve(it) }
@@ -163,6 +175,11 @@ class BrowserActivity : AppCompatActivity() {
         b.web.loadUrl(url)
         return true
     }
+
+    @Suppress("DEPRECATION")
+    private fun sharedStream(intent: Intent): android.net.Uri? =
+        if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, android.net.Uri::class.java)
+        else intent.getParcelableExtra(Intent.EXTRA_STREAM)
 
     @SuppressLint("SetJavaScriptEnabled", "AddJavascriptInterface")
     private fun setupWebView() {
