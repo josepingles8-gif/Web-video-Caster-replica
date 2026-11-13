@@ -196,6 +196,7 @@ class BrowserActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView, url: String) {
                 detector.pageUrl = url
+                detector.onPage(url, view.title)
                 view.evaluateJavascript(SCAN_JS, null)
                 if (MediaClassifier.isHttp(url)) {
                     store.history.add(Entry(view.title.orEmpty(), url, System.currentTimeMillis()))
@@ -208,6 +209,10 @@ class BrowserActivity : AppCompatActivity() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 b.progress.setProgressCompat(newProgress, true)
                 if (newProgress >= 100) b.progress.visibility = View.GONE
+            }
+
+            override fun onReceivedTitle(view: WebView, title: String?) {
+                detector.onPage(view.url, title)
             }
 
             override fun onShowCustomView(view: View, callback: CustomViewCallback) {

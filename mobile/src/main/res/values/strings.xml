@@ -72,7 +72,7 @@
     <string name="quality_help">Auto: menos pausas, puede bajar la resolución. Máxima: mejor resolución, puede pausarse con Wi‑Fi lenta.</string>
     <string name="action_tv_remote">Control remoto de TV</string>
     <string name="tvremote_title">Control remoto de TV</string>
-    <string name="tvremote_banner">Para navegar por la TV, activa «BeamCast Receiver» en Ajustes &gt; Accesibilidad de la TV. El volumen y la reproducción funcionan sin activarlo.</string>
+    <string name="tvremote_banner">Para navegar por la TV, activa «BeamCast Receiver» en Ajustes &gt; Accesibilidad de la TV. Si tu TV no tiene ese menú, activa «Depuración USB» en Opciones para desarrolladores y abre BeamCast Receiver. El volumen y la reproducción funcionan sin activarlo.</string>
     <string name="tvremote_swipe_mode">Modo táctil</string>
     <string name="tvremote_dpad_mode">Modo cruceta</string>
     <string name="tvremote_swipe_hint">Desliza para mover, toca para aceptar</string>

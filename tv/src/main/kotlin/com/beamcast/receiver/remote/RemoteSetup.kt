@@ -26,7 +26,7 @@ object RemoteSetup {
         ComponentName(context, RemoteAccessibilityService::class.java).flattenToString()
 
     fun isEnabled(context: Context): Boolean {
-        if (RemoteAccessibilityService.instance != null) return true
+        if (RemoteAccessibilityService.instance != null || LocalAdb.ready) return true
         val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
         val me = serviceName(context)
         return enabled.orEmpty().split(':').any { it == me }
@@ -54,9 +54,16 @@ object RemoteSetup {
     }
 
     fun openSettings(activity: Activity): Boolean {
-        for (action in listOf(Settings.ACTION_ACCESSIBILITY_SETTINGS, Settings.ACTION_SETTINGS)) {
+        val screens = listOf(
+            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+            // Some TV builds ship the screen but do not answer the standard action.
+            Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.accessibility.AccessibilityActivity"),
+            Intent().setClassName("com.android.settings", "com.android.settings.Settings\$AccessibilitySettingsActivity"),
+            Intent(Settings.ACTION_SETTINGS),
+        )
+        for (intent in screens) {
             try {
-                activity.startActivity(Intent(action))
+                activity.startActivity(intent)
                 return true
             } catch (_: ActivityNotFoundException) {
                 // try the next screen
@@ -110,6 +117,14 @@ object RemoteSetup {
             Toast.makeText(activity, R.string.remote_auto_enabled, Toast.LENGTH_SHORT).show()
             onDone()
             return
+        }
+        // No Accessibility screen on this TV? Use its own adbd if USB debugging is on.
+        LocalAdb.connect(activity) {
+            if (!activity.isFinishing && !activity.isDestroyed && isEnabled(activity)) {
+                dismiss()
+                Toast.makeText(activity, R.string.remote_auto_enabled, Toast.LENGTH_SHORT).show()
+                onDone()
+            }
         }
         val dismissed = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_DISMISSED, false)
         if (userRequested || (!dismissed && !promptShown)) {

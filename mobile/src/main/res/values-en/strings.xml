@@ -72,7 +72,7 @@
     <string name="quality_help">Auto: fewer pauses, may lower the resolution. Maximum: best resolution, may pause on slow Wi‑Fi.</string>
     <string name="action_tv_remote">TV remote control</string>
     <string name="tvremote_title">TV remote control</string>
-    <string name="tvremote_banner">To navigate the TV, enable “BeamCast Receiver” in the TV’s Settings &gt; Accessibility. Volume and playback work without it.</string>
+    <string name="tvremote_banner">To navigate the TV, enable “BeamCast Receiver” in the TV’s Settings &gt; Accessibility. Volume and playback work without it. If the TV has no Accessibility menu, turn on USB debugging in Developer options and open BeamCast Receiver.</string>
     <string name="tvremote_swipe_mode">Touch mode</string>
     <string name="tvremote_dpad_mode">D-pad mode</string>
     <string name="tvremote_swipe_hint">Swipe to move, tap to select</string>

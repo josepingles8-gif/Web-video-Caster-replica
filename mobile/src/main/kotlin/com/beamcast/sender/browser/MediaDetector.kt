@@ -24,8 +24,17 @@ class MediaDetector(private val onChange: (List<DetectedMedia>) -> Unit) {
     fun onRequest(url: String, reqHeaders: Map<String, String>?, mainFrame: Boolean) {
         if (mainFrame) { reset(); return }
         if (MediaClassifier.isSegment(url)) return
-        val kind = MediaClassifier.classify(url) ?: return
+        val kind = MediaClassifier.classify(url)
+            ?: if (MediaClassifier.looksLikeRangedMedia(url, reqHeaders?.keys?.any { it.equals("Range", true) } == true)) MediaKind.VIDEO else return
         add(url, kind, reqHeaders)
+    }
+
+    /** Sites whose player cannot be sniffed: offer the file behind the page instead (Google Drive). */
+    fun onPage(url: String?, title: String?) {
+        val id = MediaClassifier.driveFileId(url ?: return) ?: return
+        val name = title.orEmpty().substringBeforeLast(" - ").trim()
+        val kind = MediaClassifier.kindOfName(name) ?: return
+        add(MediaClassifier.driveDirectUrl(id), kind, null, MediaClassifier.guessMime(name))
     }
 
     /** URL reported by the injected script from a <video>/<audio>/<source> element. */
@@ -35,7 +44,7 @@ class MediaDetector(private val onChange: (List<DetectedMedia>) -> Unit) {
         add(url, kind, null)
     }
 
-    private fun add(url: String, kind: MediaKind, req: Map<String, String>?) {
+    private fun add(url: String, kind: MediaKind, req: Map<String, String>?, mime: String? = MediaClassifier.guessMime(url)) {
         val headers = LinkedHashMap<String, String>()
         fun pick(n: String) = req?.entries?.firstOrNull { it.key.equals(n, true) }?.value
         headers["User-Agent"] = pick("User-Agent") ?: userAgent
@@ -43,7 +52,7 @@ class MediaDetector(private val onChange: (List<DetectedMedia>) -> Unit) {
         (pick("Origin") ?: UrlInput.origin(pageUrl))?.let { headers["Origin"] = it }
         runCatching { CookieManager.getInstance().getCookie(url) }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { headers["Cookie"] = it }
         val added = synchronized(items) {
-            if (items.containsKey(url)) false else { items[url] = DetectedMedia(url, kind, headers, MediaClassifier.guessMime(url)); true }
+            if (items.containsKey(url)) false else { items[url] = DetectedMedia(url, kind, headers, mime); true }
         }
         if (added) notifyChange()
     }
