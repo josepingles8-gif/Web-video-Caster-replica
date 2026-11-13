@@ -67,6 +67,11 @@
             android:exported="false"
             android:launchMode="singleTop" />
 
+        <activity
+            android:name=".cast.TvRemoteActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <service
             android:name=".media.MediaServerService"
             android:exported="false"

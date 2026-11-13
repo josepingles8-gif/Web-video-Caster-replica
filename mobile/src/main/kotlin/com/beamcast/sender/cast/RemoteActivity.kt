@@ -13,7 +13,10 @@ import com.beamcast.sender.R
 import com.beamcast.sender.databinding.ActivityRemoteBinding
 import com.beamcast.sender.media.MediaServerService
 import com.beamcast.sender.media.TimeFormat
+import com.beamcast.protocol.VideoQuality
+import com.beamcast.sender.data.Store
 import com.beamcast.sender.ui.applySystemBarsPadding
+import com.beamcast.sender.ui.openTvRemote
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -37,6 +40,16 @@ class RemoteActivity : AppCompatActivity() {
         b.play.setOnClickListener { send(if (playing) ControlAction.PAUSE else ControlAction.PLAY) }
         b.back10.setOnClickListener { send(ControlAction.SEEK_RELATIVE, -10_000) }
         b.fwd30.setOnClickListener { send(ControlAction.SEEK_RELATIVE, 30_000) }
+        b.tvRemote.setOnClickListener { openTvRemote() }
+        val store = Store.get(this)
+        applyQualityChecked(store.quality)
+        b.quality.addOnButtonCheckedListener { _, id, checked ->
+            if (!checked || updatingQuality) return@addOnButtonCheckedListener
+            val q = if (id == R.id.qualityAuto) VideoQuality.AUTO else VideoQuality.MAX
+            store.quality = q
+            qualityLocalUntil = System.currentTimeMillis() + 2500
+            send(ControlAction.QUALITY, if (q == VideoQuality.AUTO) 0 else 1)
+        }
         b.stop.setOnClickListener {
             send(ControlAction.STOP)
             MediaServerService.stop(this)
@@ -63,6 +76,16 @@ class RemoteActivity : AppCompatActivity() {
     }
 
     private var volDragging = false
+    private var updatingQuality = false
+    private var qualityLocalUntil = 0L
+
+    private fun applyQualityChecked(q: String) {
+        val id = if (q == VideoQuality.AUTO) R.id.qualityAuto else R.id.qualityMax
+        if (b.quality.checkedButtonId == id) return
+        updatingQuality = true
+        b.quality.check(id)
+        updatingQuality = false
+    }
 
     private fun startPolling(d: Device) {
         lifecycleScope.launch {
@@ -112,6 +135,10 @@ class RemoteActivity : AppCompatActivity() {
             b.position.text = TimeFormat.format(s.positionMs)
         }
         b.duration.text = if (dur > 0) TimeFormat.format(dur) else ""
+        if (System.currentTimeMillis() >= qualityLocalUntil) {
+            applyQualityChecked(s.quality)
+            Store.get(this).quality = s.quality
+        }
         if (!volDragging) b.volume.progress = s.volume.coerceIn(0, 100)
     }
 }

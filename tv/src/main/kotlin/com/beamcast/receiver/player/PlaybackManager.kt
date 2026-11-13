@@ -11,6 +11,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -149,7 +150,7 @@ object PlaybackManager {
         // Quality first: on a TV always pick the best rendition the decoder supports instead of
         // adapting down to the bandwidth estimate or to a small viewport, and buffer further ahead.
         val selector = DefaultTrackSelector(app)
-        selector.parameters = qualityParams(selector.buildUponParameters(), quality)
+        selector.setParameters(qualityParams(selector.buildUponParameters(), quality))
         val meter = DefaultBandwidthMeter.Builder(app).setInitialBitrateEstimate(25_000_000L).build()
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(30_000, 120_000, 2_500, 5_000)
@@ -181,7 +182,7 @@ object PlaybackManager {
 
     private fun normalizeQuality(q: String) = if (q == VideoQuality.AUTO) VideoQuality.AUTO else VideoQuality.MAX
 
-    private fun qualityParams(b: DefaultTrackSelector.Parameters.Builder, q: String) =
+    private fun qualityParams(b: TrackSelectionParameters.Builder, q: String) =
         b.setForceHighestSupportedBitrate(q == VideoQuality.MAX)
             .clearViewportSizeConstraints()
             .clearVideoSizeConstraints()
@@ -218,7 +219,7 @@ object PlaybackManager {
                 dur = if (p.duration == C.TIME_UNSET || p.isCurrentMediaItemLive) 0 else p.duration.coerceAtLeast(0)
             }
         }
-        return PlaybackStatus(state, pos, dur, volume(), if (hasMedia) title else null, if (hasMedia) url else null, error, height)
+        return PlaybackStatus(state, pos, dur, volume(), if (hasMedia) title else null, if (hasMedia) url else null, error, height, quality)
     }
 
     fun control(req: ControlRequest): PlaybackStatus {
@@ -230,6 +231,7 @@ object PlaybackManager {
             ControlAction.SEEK -> p?.seekTo((req.value ?: 0).coerceAtLeast(0))
             ControlAction.SEEK_RELATIVE -> seekBy(req.value ?: 0)
             ControlAction.VOLUME -> setVolume((req.value ?: 0).coerceIn(0, 100).toInt())
+            ControlAction.QUALITY -> setQuality(if (req.value == 0L) VideoQuality.AUTO else VideoQuality.MAX)
         }
         return status()
     }

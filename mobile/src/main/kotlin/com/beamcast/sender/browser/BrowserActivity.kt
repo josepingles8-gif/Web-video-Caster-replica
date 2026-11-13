@@ -49,6 +49,7 @@ import com.beamcast.sender.ui.DevicePicker
 import com.beamcast.sender.ui.applySystemBarsPadding
 import com.beamcast.sender.ui.castLocalFile
 import com.beamcast.sender.ui.castRequest
+import com.beamcast.sender.ui.openTvRemote
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.launch
 
@@ -280,6 +281,7 @@ class BrowserActivity : AppCompatActivity() {
             R.id.action_reload -> b.web.reload()
             R.id.action_cast -> DevicePicker.show(this) { }
             R.id.action_media -> showMediaSheet()
+            R.id.action_tv_remote -> openTvRemote()
             R.id.action_desktop -> { desktop = !desktop; applyDesktop(); b.web.reload(); invalidateOptionsMenu() }
             R.id.action_bookmark -> toggleBookmark()
             R.id.action_bookmarks -> entries.launch(Intent(this, EntriesActivity::class.java))

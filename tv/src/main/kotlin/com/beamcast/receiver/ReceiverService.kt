@@ -19,6 +19,7 @@ import com.beamcast.receiver.discovery.ReceiverState
 import com.beamcast.receiver.discovery.Visibility
 import com.beamcast.receiver.player.AppPlayerController
 import com.beamcast.receiver.player.PlaybackManager
+import com.beamcast.receiver.remote.AppRemoteController
 import com.beamcast.receiver.server.BeamServer
 import com.beamcast.receiver.server.RequestRouter
 import com.beamcast.receiver.ui.HomeActivity
@@ -35,7 +36,7 @@ class ReceiverService : Service() {
     override fun onCreate() {
         super.onCreate()
         startAsForeground()
-        val router = RequestRouter(AppPlayerController(this)) {
+        val router = RequestRouter(AppPlayerController(this), AppRemoteController(this)) {
             val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull()
             DeviceInfo(DevicePrefs.name(this), version ?: "1.0")
         }

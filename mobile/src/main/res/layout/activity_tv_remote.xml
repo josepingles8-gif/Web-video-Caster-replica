@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:navigationIcon="@drawable/ic_back"
+        app:title="@string/tvremote_title" />
+
+    <TextView
+        android:id="@+id/banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSecondaryContainer"
+        android:padding="12dp"
+        android:text="@string/tvremote_banner"
+        android:textColor="?attr/colorOnSecondaryContainer"
+        android:visibility="gone" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/modeToggle"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tvremote_swipe_mode"
+                app:icon="@drawable/ic_swipe" />
+
+            <FrameLayout
+                android:layout_width="264dp"
+                android:layout_height="264dp"
+                android:layout_marginTop="8dp">
+
+                <FrameLayout
+                    android:id="@+id/dpad"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_dpad">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/keyUp"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_gravity="top|center_horizontal"
+                        android:contentDescription="@string/key_up"
+                        app:icon="@drawable/ic_arrow_up"
+                        app:iconSize="36dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/keyDown"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_gravity="bottom|center_horizontal"
+                        android:contentDescription="@string/key_down"
+                        app:icon="@drawable/ic_arrow_down"
+                        app:iconSize="36dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/keyLeft"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_gravity="start|center_vertical"
+                        android:contentDescription="@string/key_left"
+                        app:icon="@drawable/ic_arrow_left"
+                        app:iconSize="36dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/keyRight"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_gravity="end|center_vertical"
+                        android:contentDescription="@string/key_right"
+                        app:icon="@drawable/ic_arrow_right"
+                        app:iconSize="36dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/keyOk"
+                        style="@style/Widget.Material3.Button"
+                        android:layout_width="88dp"
+                        android:layout_height="88dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/key_ok"
+                        android:text="@string/key_ok"
+                        app:cornerRadius="44dp" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/swipePad"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_dpad"
+                    android:contentDescription="@string/tvremote_swipe_desc"
+                    android:gravity="center"
+                    android:padding="32dp"
+                    android:text="@string/tvremote_swipe_hint"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/keyBack"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/key_back"
+                    app:icon="@drawable/ic_back"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/keyHome"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/key_home"
+                    app:icon="@drawable/ic_home"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/keyRecents"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/key_recents"
+                    app:icon="@drawable/ic_recents"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/keyVolDown"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/key_vol_down"
+                    app:icon="@drawable/ic_vol_down"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/keyMute"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/key_mute"
+                    app:icon="@drawable/ic_mute"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/keyVolUp"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/key_vol_up"
+                    app:icon="@drawable/ic_vol_up"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/keyRewind"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/key_rewind"
+                    app:icon="@drawable/ic_rewind"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/keyPlayPause"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/key_play_pause"
+                    app:icon="@drawable/ic_play_pause"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/keyFastForward"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/key_fast_forward"
+                    app:icon="@drawable/ic_fast_forward"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/tvremote_text_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/textInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:imeOptions="actionSend"
+                        android:inputType="text"
+                        android:maxLines="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/textSend"
+                    style="@style/Widget.Material3.Button.IconButton.Filled"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="@string/tvremote_send"
+                    app:icon="@drawable/ic_send" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/keyBackspace"
+                    style="@style/Widget.Material3.Button.IconButton.Tonal"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="4dp"
+                    android:contentDescription="@string/key_backspace"
+                    app:icon="@drawable/ic_backspace" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:minHeight="24dp"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

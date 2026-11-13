@@ -8,6 +8,8 @@ import com.beamcast.protocol.ErrorResponse
 import com.beamcast.protocol.LoadRequest
 import com.beamcast.protocol.PlaybackState
 import com.beamcast.protocol.PlaybackStatus
+import com.beamcast.protocol.RemoteResult
+import com.beamcast.protocol.TextRequest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -33,8 +35,24 @@ class RequestRouterTest {
         }
     }
 
+    private class FakeRemote : RemoteController {
+        var on = true
+        var lastKey: String? = null
+        var lastText: TextRequest? = null
+        override fun enabled() = on
+        override fun key(key: String): RemoteResult {
+            lastKey = key
+            return if (on) RemoteResult(true, true) else RemoteResult(false, false, "disabled")
+        }
+        override fun text(req: TextRequest): RemoteResult {
+            lastText = req
+            return RemoteResult(on, on)
+        }
+    }
+
     private val fake = Fake()
-    private val router = RequestRouter(fake) { DeviceInfo("Living room", "1.0") }
+    private val remote = FakeRemote()
+    private val router = RequestRouter(fake, remote) { DeviceInfo("Living room", "1.0") }
     private fun err(r: HttpResult) = BeamProtocol.json.decodeFromString(ErrorResponse.serializer(), r.body)
     private fun st(r: HttpResult) = BeamProtocol.json.decodeFromString(PlaybackStatus.serializer(), r.body)
 
@@ -114,5 +132,54 @@ class RequestRouterTest {
         assertEquals("POST", m.allow)
         assertEquals(405, router.handle("POST", "/info", "{}").status)
         assertEquals(200, router.handle("GET", "/info/", null).status)
+    }
+
+    private fun rr(r: HttpResult) = BeamProtocol.json.decodeFromString(RemoteResult.serializer(), r.body)
+
+    @Test fun keyOk() {
+        val r = router.handle("POST", "/key", """{"key":"up"}""")
+        assertEquals(200, r.status)
+        assertTrue(rr(r).ok)
+        assertEquals("up", remote.lastKey)
+    }
+
+    @Test fun keyUnknownIs400() {
+        remote.lastKey = null
+        assertEquals(400, router.handle("POST", "/key", """{"key":"banana"}""").status)
+        assertNull(remote.lastKey)
+    }
+
+    @Test fun keyServiceDisabled() {
+        remote.on = false
+        val r = router.handle("POST", "/key", """{"key":"home"}""")
+        assertEquals(200, r.status)
+        assertEquals(false, rr(r).ok)
+        assertEquals(false, rr(r).remoteEnabled)
+        assertEquals("disabled", rr(r).message)
+    }
+
+    @Test fun textRequest() {
+        val r = router.handle("POST", "/text", """{"text":"hola","replace":true}""")
+        assertEquals(200, r.status)
+        assertTrue(rr(r).ok)
+        assertEquals(TextRequest("hola", true), remote.lastText)
+        assertEquals(400, router.handle("POST", "/text", """{}""").status)
+    }
+
+    @Test fun qualityControl() {
+        assertEquals(200, router.handle("POST", "/control", """{"action":"quality","value":0}""").status)
+        assertEquals(0L, fake.controlled?.value)
+        assertEquals(200, router.handle("POST", "/control", """{"action":"quality","value":1}""").status)
+        fake.controlled = null
+        assertEquals(400, router.handle("POST", "/control", """{"action":"quality","value":2}""").status)
+        assertEquals(400, router.handle("POST", "/control", """{"action":"quality"}""").status)
+        assertNull(fake.controlled)
+    }
+
+    @Test fun infoReportsRemoteEnabled() {
+        fun enabled() = BeamProtocol.json.decodeFromString(DeviceInfo.serializer(), router.handle("GET", "/info", null).body).remoteEnabled
+        assertTrue(enabled())
+        remote.on = false
+        assertEquals(false, enabled())
     }
 }

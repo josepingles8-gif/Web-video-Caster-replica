@@ -18,4 +18,9 @@
     <string name="channel_name">Receiver</string>
     <string name="notification_title">BeamCast Receiver is running</string>
     <string name="notification_text">Waiting for your phone</string>
+    <string name="remote_service_description">Lets the BeamCast phone app navigate this TV like a remote control (move, select, go back, type). It does not collect or send personal data or what is on screen.</string>
+    <string name="remote_enabled">Phone remote control: enabled</string>
+    <string name="remote_disabled">Phone remote control: disabled</string>
+    <string name="remote_enable_button">Enable remote control</string>
+    <string name="remote_manual_path">Could not open settings. Enable it manually in Settings › Accessibility › BeamCast Receiver.</string>
 </resources>

@@ -1,7 +1,10 @@
 package com.beamcast.receiver.ui
 
 import android.content.Intent
+import android.content.ActivityNotFoundException
 import android.os.Bundle
+import android.provider.Settings
+import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
@@ -17,6 +20,7 @@ import com.beamcast.receiver.ReceiverService
 import com.beamcast.receiver.discovery.DevicePrefs
 import com.beamcast.receiver.discovery.ReceiverState
 import com.beamcast.receiver.discovery.Visibility
+import com.beamcast.receiver.remote.RemoteAccessibilityService
 import kotlinx.coroutines.launch
 
 /** Idle screen: shows how to connect from the phone. */
@@ -31,7 +35,14 @@ class HomeActivity : AppCompatActivity() {
         val deviceName = findViewById<TextView>(R.id.device_name)
         val address = findViewById<TextView>(R.id.address)
         val status = findViewById<TextView>(R.id.status)
-        findViewById<android.view.View>(R.id.rename).setOnClickListener { askName() }
+        findViewById<View>(R.id.rename).setOnClickListener { askName() }
+        findViewById<View>(R.id.remote_enable).setOnClickListener {
+            try {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            } catch (_: ActivityNotFoundException) {
+                findViewById<TextView>(R.id.remote_status).setText(R.string.remote_manual_path)
+            }
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -49,6 +60,13 @@ class HomeActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val on = RemoteAccessibilityService.instance != null
+        findViewById<TextView>(R.id.remote_status).setText(if (on) R.string.remote_enabled else R.string.remote_disabled)
+        findViewById<View>(R.id.remote_enable).visibility = if (on) View.GONE else View.VISIBLE
     }
 
     private fun askName() {

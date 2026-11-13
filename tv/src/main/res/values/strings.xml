@@ -18,4 +18,9 @@
     <string name="channel_name">Receptor</string>
     <string name="notification_title">BeamCast Receiver activo</string>
     <string name="notification_text">Esperando a tu teléfono</string>
+    <string name="remote_service_description">Permite que la app BeamCast de tu teléfono navegue por este televisor como un mando a distancia (moverse, aceptar, volver, escribir). No recopila ni envía datos personales ni lo que hay en pantalla.</string>
+    <string name="remote_enabled">Mando a distancia desde el teléfono: activado</string>
+    <string name="remote_disabled">Mando a distancia desde el teléfono: desactivado</string>
+    <string name="remote_enable_button">Activar control remoto</string>
+    <string name="remote_manual_path">No se pudo abrir los ajustes. Actívalo manualmente en Ajustes › Accesibilidad › BeamCast Receiver.</string>
 </resources>

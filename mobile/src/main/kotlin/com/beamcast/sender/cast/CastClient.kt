@@ -5,7 +5,10 @@ import com.beamcast.protocol.ControlRequest
 import com.beamcast.protocol.DeviceInfo
 import com.beamcast.protocol.ErrorResponse
 import com.beamcast.protocol.LoadRequest
+import com.beamcast.protocol.KeyRequest
 import com.beamcast.protocol.PlaybackStatus
+import com.beamcast.protocol.RemoteResult
+import com.beamcast.protocol.TextRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.encodeToString
 import kotlinx.coroutines.withContext
@@ -58,4 +61,10 @@ object CastClient {
 
     suspend fun control(d: Device, action: String, value: Long? = null): PlaybackStatus =
         json.decodeFromString(call(d, "POST", BeamProtocol.PATH_CONTROL, json.encodeToString(ControlRequest(action, value))))
+
+    suspend fun key(d: Device, key: String): RemoteResult =
+        json.decodeFromString(call(d, "POST", BeamProtocol.PATH_KEY, json.encodeToString(KeyRequest(key))))
+
+    suspend fun text(d: Device, text: String, replace: Boolean = false): RemoteResult =
+        json.decodeFromString(call(d, "POST", BeamProtocol.PATH_TEXT, json.encodeToString(TextRequest(text, replace))))
 }

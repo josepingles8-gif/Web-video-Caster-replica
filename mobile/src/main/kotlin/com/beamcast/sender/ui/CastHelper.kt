@@ -11,6 +11,8 @@ import com.beamcast.sender.cast.CastClient
 import com.beamcast.sender.cast.CastSession
 import com.beamcast.sender.cast.Device
 import com.beamcast.sender.cast.RemoteActivity
+import com.beamcast.sender.data.Store
+import com.beamcast.sender.cast.TvRemoteActivity
 import com.beamcast.sender.media.LocalServer
 import com.beamcast.sender.media.MediaServerService
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +22,7 @@ import kotlinx.coroutines.withContext
 private suspend fun AppCompatActivity.load(device: Device, req: LoadRequest): Boolean {
     Toast.makeText(this, getString(R.string.cast_sending, device.name), Toast.LENGTH_SHORT).show()
     return try {
-        CastClient.load(device, req)
+        CastClient.load(device, req.copy(quality = Store.get(this).quality))
         startActivity(Intent(this, RemoteActivity::class.java))
         true
     } catch (e: Exception) {
@@ -59,5 +61,14 @@ fun AppCompatActivity.castLocalFile(uri: Uri) {
         MediaServerService.start(this@castLocalFile, served.name)
         val ok = load(device, LoadRequest(url = served.url, title = served.name, mimeType = served.mime))
         if (!ok) MediaServerService.stop(this@castLocalFile)
+    }
+}
+
+/** Opens the TV remote screen, asking the user to pick a device first if none is connected. */
+fun AppCompatActivity.openTvRemote() {
+    if (CastSession.device.value == null) {
+        DevicePicker.show(this) { startActivity(Intent(this, TvRemoteActivity::class.java)) }
+    } else {
+        startActivity(Intent(this, TvRemoteActivity::class.java))
     }
 }

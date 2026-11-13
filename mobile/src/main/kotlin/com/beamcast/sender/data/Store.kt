@@ -2,6 +2,7 @@ package com.beamcast.sender.data
 
 import android.content.Context
 import com.beamcast.protocol.BeamProtocol
+import com.beamcast.protocol.VideoQuality
 import com.beamcast.sender.cast.Device
 
 class Store private constructor(ctx: Context) {
@@ -16,6 +17,10 @@ class Store private constructor(ctx: Context) {
         set(v) {
             prefs.edit().putString("device", v?.let { BeamProtocol.json.encodeToString(Device.serializer(), it) }).apply()
         }
+
+    var quality: String
+        get() = prefs.getString("quality", VideoQuality.MAX) ?: VideoQuality.MAX
+        set(v) { prefs.edit().putString("quality", v).apply() }
 
     fun saveBookmarks() = prefs.edit().putString("bookmarks", bookmarks.toJson()).apply()
     fun saveHistory() = prefs.edit().putString("history", history.toJson()).apply()
