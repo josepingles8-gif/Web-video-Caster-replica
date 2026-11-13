@@ -1,9 +1,7 @@
 package com.beamcast.receiver.ui
 
 import android.content.Intent
-import android.content.ActivityNotFoundException
 import android.os.Bundle
-import android.provider.Settings
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -20,12 +18,18 @@ import com.beamcast.receiver.ReceiverService
 import com.beamcast.receiver.discovery.DevicePrefs
 import com.beamcast.receiver.discovery.ReceiverState
 import com.beamcast.receiver.discovery.Visibility
-import com.beamcast.receiver.remote.RemoteAccessibilityService
+import com.beamcast.receiver.remote.RemoteSetup
 import kotlinx.coroutines.launch
 
 /** Idle screen: shows how to connect from the phone. */
 @OptIn(UnstableApi::class)
 class HomeActivity : AppCompatActivity() {
+    companion object {
+        /** The resumed instance, so the remote controller can show the setup prompt on screen. */
+        @Volatile
+        var current: HomeActivity? = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
@@ -37,11 +41,7 @@ class HomeActivity : AppCompatActivity() {
         val status = findViewById<TextView>(R.id.status)
         findViewById<View>(R.id.rename).setOnClickListener { askName() }
         findViewById<View>(R.id.remote_enable).setOnClickListener {
-            try {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            } catch (_: ActivityNotFoundException) {
-                findViewById<TextView>(R.id.remote_status).setText(R.string.remote_manual_path)
-            }
+            RemoteSetup.ensure(this, userRequested = true) { refreshRemoteStatus() }
         }
 
         lifecycleScope.launch {
@@ -64,7 +64,23 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        val on = RemoteAccessibilityService.instance != null
+        current = this
+        RemoteSetup.ensure(this, userRequested = false) { refreshRemoteStatus() }
+    }
+
+    override fun onPause() {
+        if (current === this) current = null
+        RemoteSetup.dismiss()
+        super.onPause()
+    }
+
+    override fun onDestroy() {
+        RemoteSetup.dismiss()
+        super.onDestroy()
+    }
+
+    private fun refreshRemoteStatus() {
+        val on = RemoteSetup.isEnabled(this)
         findViewById<TextView>(R.id.remote_status).setText(if (on) R.string.remote_enabled else R.string.remote_disabled)
         findViewById<View>(R.id.remote_enable).visibility = if (on) View.GONE else View.VISIBLE
     }

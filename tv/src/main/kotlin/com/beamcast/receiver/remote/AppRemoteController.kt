@@ -5,6 +5,8 @@ import android.content.Context
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.KeyEvent
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
@@ -15,6 +17,7 @@ import com.beamcast.protocol.TextRequest
 import com.beamcast.receiver.player.PlaybackManager
 import com.beamcast.receiver.player.onMain
 import com.beamcast.receiver.server.RemoteController
+import com.beamcast.receiver.ui.HomeActivity
 
 /** Runs remote keys on the main thread and returns the result synchronously to the server thread. */
 @OptIn(UnstableApi::class)
@@ -37,18 +40,31 @@ class AppRemoteController(context: Context) : RemoteController {
                 when {
                     svc != null -> navigate(svc, key)
                     PlaybackManager.ui != null && playerKey(key) -> result(true)
-                    else -> result(false, "Remote control is not enabled on the TV")
+                    else -> notEnabled()
                 }
             }
         }
     }
 
     override fun text(req: TextRequest): RemoteResult = onMain {
-        val svc = RemoteAccessibilityService.instance ?: return@onMain result(false, "Remote control is not enabled on the TV")
+        val svc = RemoteAccessibilityService.instance ?: return@onMain notEnabled()
         editText(svc) { old -> if (req.replace) req.text else old + req.text }
     }
 
     private fun result(ok: Boolean, message: String? = null) = RemoteResult(ok, enabled(), message)
+
+    /**
+     * The service is off. Try to turn it on once (the service starts asynchronously, so this request
+     * still reports "not enabled"); if that is not possible, ask on the resumed home screen.
+     */
+    private fun notEnabled(): RemoteResult {
+        if (!RemoteSetup.tryAutoEnable(app)) {
+            Handler(Looper.getMainLooper()).post {
+                HomeActivity.current?.let { RemoteSetup.ensure(it, userRequested = true) {} }
+            }
+        }
+        return result(false, "Remote control is not enabled on the TV")
+    }
 
     private fun volume(direction: Int): RemoteResult {
         audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI)

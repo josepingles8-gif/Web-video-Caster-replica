@@ -23,4 +23,11 @@
     <string name="remote_disabled">Phone remote control: disabled</string>
     <string name="remote_enable_button">Enable remote control</string>
     <string name="remote_manual_path">Could not open settings. Enable it manually in Settings › Accessibility › BeamCast Receiver.</string>
+    <string name="remote_prompt_title">Turn on remote control</string>
+    <string name="remote_prompt_message">To use your phone as this TV\'s remote, turn on \"BeamCast Receiver\" in Accessibility.\n\nSettings &gt; Accessibility &gt; BeamCast Receiver &gt; Turn on\n\nThis is only used to move focus and press buttons. No data is collected.</string>
+    <string name="remote_prompt_open">Open settings</string>
+    <string name="remote_prompt_later">Not now</string>
+    <string name="remote_prompt_dont_show">Don\'t show again</string>
+    <string name="remote_prompt_ok">Got it</string>
+    <string name="remote_auto_enabled">Remote control turned on</string>
 </resources>

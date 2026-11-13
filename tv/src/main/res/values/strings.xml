@@ -23,4 +23,11 @@
     <string name="remote_disabled">Mando a distancia desde el teléfono: desactivado</string>
     <string name="remote_enable_button">Activar control remoto</string>
     <string name="remote_manual_path">No se pudo abrir los ajustes. Actívalo manualmente en Ajustes › Accesibilidad › BeamCast Receiver.</string>
+    <string name="remote_prompt_title">Activar control remoto</string>
+    <string name="remote_prompt_message">Para usar tu teléfono como mando de este televisor, activa \"BeamCast Receiver\" en Accesibilidad.\n\nAjustes &gt; Accesibilidad &gt; BeamCast Receiver &gt; Activar\n\nEsta opción solo se usa para mover el foco y pulsar botones. No se recopilan datos.</string>
+    <string name="remote_prompt_open">Abrir ajustes</string>
+    <string name="remote_prompt_later">Ahora no</string>
+    <string name="remote_prompt_dont_show">No volver a mostrar</string>
+    <string name="remote_prompt_ok">Entendido</string>
+    <string name="remote_auto_enabled">Control remoto activado</string>
 </resources>
