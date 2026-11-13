@@ -64,6 +64,8 @@ object PlaybackManager {
     private var serial = 0
     private var fixedVolume = 100
     private var quality = VideoQuality.MAX
+    /** Set once per load when MAX failed to decode and we fell back to AUTO, so we never loop. */
+    private var fellBack = false
 
     val active get() = hasMedia
 
@@ -78,6 +80,7 @@ object PlaybackManager {
         started = false
         error = null
         quality = normalizeQuality(req.quality)
+        fellBack = false
         title = req.title ?: req.url.substringBefore('?').substringAfterLast('/').ifBlank { null }
         url = req.url
         isImage = isImage(req)
@@ -147,13 +150,18 @@ object PlaybackManager {
     }
 
     private fun buildPlayer(): ExoPlayer {
-        // Quality first: on a TV always pick the best rendition the decoder supports instead of
-        // adapting down to the bandwidth estimate or to a small viewport, and buffer further ahead.
+        // Quality first: pick the best rendition the decoder supports (up to the screen size) instead
+        // of adapting down to the bandwidth estimate, and buffer further ahead.
         val selector = DefaultTrackSelector(app)
         selector.setParameters(qualityParams(selector.buildUponParameters(), quality))
         val meter = DefaultBandwidthMeter.Builder(app).setInitialBitrateEstimate(25_000_000L).build()
+        // The buffer lives on the Java heap. Without a byte cap, ExoPlayer allows ~140 MB for video,
+        // which at forced 4K bitrates fills up and runs a TV with a 128-256 MB heap out of memory
+        // (the app then crashes). Cap it to a share of the real heap; time limits stay as the goal.
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(30_000, 120_000, 2_500, 5_000)
+            .setBufferDurationsMs(30_000, 60_000, 2_500, 5_000)
+            .setTargetBufferBytes(bufferBudgetBytes())
+            .setPrioritizeTimeOverSizeThresholds(false)
             .build()
         val p = ExoPlayer.Builder(app)
             .setTrackSelector(selector)
@@ -173,6 +181,7 @@ object PlaybackManager {
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) { ui?.onChanged() }
             override fun onIsPlayingChanged(isPlaying: Boolean) { ui?.onChanged() }
             override fun onPlayerError(e: PlaybackException) {
+                if (retryWithAuto(e)) return
                 error = "${e.errorCodeName}${e.cause?.message?.let { ": $it" } ?: ""}"
                 ui?.onChanged()
             }
@@ -180,16 +189,47 @@ object PlaybackManager {
         return p
     }
 
+    private fun bufferBudgetBytes(): Int {
+        val heap = Runtime.getRuntime().maxMemory()
+        return (heap / 4).coerceIn(16L * 1024 * 1024, 96L * 1024 * 1024).toInt()
+    }
+
+    /**
+     * MAX can pick a rendition the TV's decoder claims to support but cannot actually run (or that
+     * runs it out of memory). Instead of failing, drop to AUTO once and resume where we were.
+     */
+    private fun retryWithAuto(e: PlaybackException): Boolean {
+        val p = player ?: return false
+        if (quality != VideoQuality.MAX || fellBack) return false
+        val recoverable = e.errorCode in PlaybackException.ERROR_CODE_DECODER_INIT_FAILED..PlaybackException.ERROR_CODE_DECODING_RESOURCES_RECLAIMED ||
+            e.errorCode == PlaybackException.ERROR_CODE_UNSPECIFIED ||
+            e.errorCode == PlaybackException.ERROR_CODE_FAILED_RUNTIME_CHECK ||
+            generateSequence<Throwable>(e) { it.cause }.any { it is OutOfMemoryError }
+        if (!recoverable) return false
+        fellBack = true
+        quality = VideoQuality.AUTO
+        p.trackSelectionParameters = qualityParams(p.trackSelectionParameters.buildUpon(), quality)
+        p.prepare()
+        p.playWhenReady = true
+        ui?.onChanged()
+        return true
+    }
+
     private fun normalizeQuality(q: String) = if (q == VideoQuality.AUTO) VideoQuality.AUTO else VideoQuality.MAX
 
+    /**
+     * Both modes are limited to the physical screen: decoding 4K on a 1080p TV only costs memory and
+     * decoder headroom (and crashed weaker boxes). MAX then forces the best rendition within that.
+     */
     private fun qualityParams(b: TrackSelectionParameters.Builder, q: String) =
         b.setForceHighestSupportedBitrate(q == VideoQuality.MAX)
-            .clearViewportSizeConstraints()
             .clearVideoSizeConstraints()
+            .setViewportSizeToPhysicalDisplaySize(app, false)
             .build()
 
     private fun setQuality(q: String) {
         quality = q
+        fellBack = false
         player?.let { p ->
             p.trackSelectionParameters = qualityParams(p.trackSelectionParameters.buildUpon(), q)
         }
