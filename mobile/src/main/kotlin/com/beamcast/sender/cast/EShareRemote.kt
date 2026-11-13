@@ -16,10 +16,13 @@ object EShareRemote {
     /** Control ports used by EShare servers, most common first. */
     val PORTS = listOf(2012, 8121)
     private const val IDLE_MS = 4000L
+    private const val RETRY_MS = 60_000L
 
     private var socket: Socket? = null
     private var lastUse = 0L
     private var goodPort: Int? = null
+    private var missingHost: String? = null
+    private var missingSince = 0L
 
     /** Android key code for a [RemoteKey] this channel can deliver, or null. */
     fun keyCode(key: String): Int? = when (key) {
@@ -32,6 +35,9 @@ object EShareRemote {
         RemoteKey.HOME -> 3
         RemoteKey.RECENTS -> 187
         RemoteKey.BACKSPACE -> 67
+        RemoteKey.VOLUME_UP -> 24
+        RemoteKey.VOLUME_DOWN -> 25
+        RemoteKey.MUTE -> 164
         else -> null
     }
 
@@ -61,6 +67,8 @@ object EShareRemote {
         val current = socket
         if (current != null && current.inetAddress?.hostAddress == host && System.currentTimeMillis() - lastUse < IDLE_MS) return current
         close()
+        // Do not stall every key press on a TV that has no EShare server.
+        if (host == missingHost && System.currentTimeMillis() - missingSince < RETRY_MS) return null
         for (port in listOfNotNull(goodPort?.takeIf { it in ports }) + ports) {
             val s = Socket()
             try {
@@ -69,11 +77,14 @@ object EShareRemote {
                 s.getOutputStream().apply { write(hello("BeamCast").toByteArray()); flush() }
                 socket = s
                 goodPort = port
+                missingHost = null
                 return s
             } catch (_: Exception) {
                 runCatching { s.close() }
             }
         }
+        missingHost = host
+        missingSince = System.currentTimeMillis()
         return null
     }
 

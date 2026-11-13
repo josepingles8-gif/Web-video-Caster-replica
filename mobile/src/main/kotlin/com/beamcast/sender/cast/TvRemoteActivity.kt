@@ -106,7 +106,10 @@ class TvRemoteActivity : AppCompatActivity() {
 
     private fun sendKey(key: String, repeat: Boolean) = enqueue(repeat) { d ->
         val code = EShareRemote.keyCode(key)
-        if (viaEShare && code != null && EShareRemote.send(d.host, code)) return@enqueue
+        // Volume as a real key press changes the TV's own volume; the receiver can only change
+        // Android's media volume, which many TVs ignore.
+        val volume = key == RemoteKey.VOLUME_UP || key == RemoteKey.VOLUME_DOWN || key == RemoteKey.MUTE
+        if ((viaEShare || volume) && code != null && EShareRemote.send(d.host, code)) return@enqueue
         try {
             val r = CastClient.key(d, key)
             // BeamCast Receiver cannot press keys on TVs without Accessibility or ADB; their EShare service can.

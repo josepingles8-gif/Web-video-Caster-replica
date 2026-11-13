@@ -12,10 +12,11 @@ import java.net.ServerSocket
 import kotlin.concurrent.thread
 
 class EShareRemoteTest {
-    @Test fun mapsNavigationKeysOnly() {
+    @Test fun mapsKeysToAndroidCodes() {
         assertEquals(19, EShareRemote.keyCode(RemoteKey.UP))
         assertEquals(4, EShareRemote.keyCode(RemoteKey.BACK))
-        assertNull(EShareRemote.keyCode(RemoteKey.VOLUME_UP))
+        assertEquals(24, EShareRemote.keyCode(RemoteKey.VOLUME_UP))
+        assertNull(EShareRemote.keyCode(RemoteKey.PLAY_PAUSE))
     }
 
     @Test fun sendsHelloThenKeyEvents() {
