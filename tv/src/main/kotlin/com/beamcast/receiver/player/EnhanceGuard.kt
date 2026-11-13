@@ -23,9 +23,32 @@ object EnhanceGuard {
         p.edit().putBoolean(PENDING, false).putInt(BROKEN_IN, BuildConfig.VERSION_CODE).commit()
         val last = CrashLog.read(context)
         if (last == null || !last.startsWith("v${BuildConfig.VERSION_CODE} thread=")) {
-            CrashLog.note(context, "Picture enhancement closed the app without a Java error (native GPU driver fault or out of memory).")
+            CrashLog.note(context, "Picture enhancement closed the app without a Java error.\n" + recentLog())
         }
     }
+
+    /**
+     * The app's own recent error log lines. They outlive the crashed process and are the only
+     * evidence of a native fault (signal, GPU driver or codec errors) on a TV without adb.
+     */
+    private fun recentLog(): String {
+        var out = ""
+        val reader = Thread {
+            out = runCatching {
+                val proc = ProcessBuilder("logcat", "-d", "-v", "brief", "-b", "main", "-b", "system", "-b", "crash", "-t", "1500")
+                    .redirectErrorStream(true).start()
+                proc.inputStream.bufferedReader().useLines { lines ->
+                    lines.filter { it.startsWith("E/") || it.startsWith("F/") || it.startsWith("A/") || INTERESTING.containsMatchIn(it) }
+                        .map { it.take(170) }.toList().takeLast(40).joinToString("\n")
+                }
+            }.getOrElse { "log unavailable: $it" }
+        }
+        reader.start()
+        reader.join(4000)
+        return out.takeLast(4000).ifBlank { "(no log lines)" }
+    }
+
+    private val INTERESTING = Regex("signal|egl|gles|omx|codec|effect|frameprocess|surfacetexture|outofmemory|lowmem|mali|adreno|powervr", RegexOption.IGNORE_CASE)
 
     fun supported(context: Context) = prefs(context).getInt(BROKEN_IN, -1) != BuildConfig.VERSION_CODE
 
