@@ -53,17 +53,41 @@ object RemoteSetup {
         }
     }
 
+    /** Index of the next settings screen to try, so every press of "Open settings" tries a different one. */
+    private var nextScreen = 0
+
+    /**
+     * Screens that may let the user turn the service on, best first. Vendor TV builds often hide the
+     * Accessibility and Developer options entries from their menu while the screens still exist, so
+     * the settings packages are also searched for them.
+     */
+    private fun candidateScreens(context: Context): List<Intent> {
+        val found = ArrayList<Intent>()
+        val hidden = ArrayList<Intent>()
+        for (pkg in listOf("com.android.tv.settings", "com.android.settings")) {
+            val activities = try {
+                context.packageManager.getPackageInfo(pkg, PackageManager.GET_ACTIVITIES).activities
+            } catch (_: Exception) {
+                null
+            } ?: continue
+            for (a in activities) {
+                if (!a.exported || !a.enabled) continue
+                val name = a.name.lowercase()
+                if ("accessib" in name) found.add(0, Intent().setClassName(pkg, a.name))
+                else if ("development" in name || "developer" in name) hidden.add(Intent().setClassName(pkg, a.name))
+            }
+        }
+        return listOf(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) + found +
+            Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS) + hidden + Intent(Settings.ACTION_SETTINGS)
+    }
+
     fun openSettings(activity: Activity): Boolean {
-        val screens = listOf(
-            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
-            // Some TV builds ship the screen but do not answer the standard action.
-            Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.accessibility.AccessibilityActivity"),
-            Intent().setClassName("com.android.settings", "com.android.settings.Settings\$AccessibilitySettingsActivity"),
-            Intent(Settings.ACTION_SETTINGS),
-        )
-        for (intent in screens) {
+        val screens = candidateScreens(activity)
+        for (i in screens.indices) {
+            val intent = screens[(nextScreen + i) % screens.size]
             try {
                 activity.startActivity(intent)
+                nextScreen = (nextScreen + i + 1) % screens.size
                 return true
             } catch (_: ActivityNotFoundException) {
                 // try the next screen
