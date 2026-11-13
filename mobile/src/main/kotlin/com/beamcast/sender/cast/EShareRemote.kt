@@ -88,8 +88,15 @@ object EShareRemote {
         return null
     }
 
-    fun close() {
+    private fun close() {
         runCatching { socket?.close() }
         socket = null
+    }
+
+    /** Drops the connection and forgets that a host had no server, so the next key tries again. */
+    @Synchronized
+    fun reset() {
+        close()
+        missingHost = null
     }
 }

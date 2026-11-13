@@ -75,6 +75,7 @@ class TvRemoteActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        EShareRemote.reset()
         val d = device ?: return
         lifecycleScope.launch {
             try { showRemoteEnabled(CastClient.info(d).remoteEnabled) } catch (e: CastException) { showStatus(e.message) }

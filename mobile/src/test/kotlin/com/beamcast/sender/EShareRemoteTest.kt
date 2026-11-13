@@ -20,6 +20,7 @@ class EShareRemoteTest {
     }
 
     @Test fun sendsHelloThenKeyEvents() {
+        EShareRemote.reset()
         val server = ServerSocket(0)
         var received = ""
         val t = thread { server.accept().use { received = it.getInputStream().readBytes().toString(Charsets.UTF_8) } }
@@ -27,7 +28,7 @@ class EShareRemoteTest {
             assertTrue(EShareRemote.send("127.0.0.1", 19, listOf(server.localPort)))
             assertTrue(EShareRemote.send("127.0.0.1", 23, listOf(server.localPort)))
         }
-        EShareRemote.close()
+        EShareRemote.reset()
         t.join(5000)
         server.close()
         assertEquals("sayHello\r\nBeamCast\r\n\r\nKEYEVENT\r\n19\r\n\r\nKEYEVENT\r\n23\r\n\r\n", received)
@@ -36,5 +37,6 @@ class EShareRemoteTest {
     @Test fun reportsMissingServer() {
         val free = ServerSocket(0).use { it.localPort }
         runBlocking { assertFalse(EShareRemote.send("127.0.0.1", 19, listOf(free))) }
+        EShareRemote.reset()
     }
 }
