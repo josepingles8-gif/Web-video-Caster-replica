@@ -116,4 +116,6 @@
     <string name="tvupdate_current">La TV ya tiene la última versión.</string>
     <string name="tvupdate_unsupported">La app instalada en la TV es anterior a esta función. Instala el APK de la TV a mano una última vez; las siguientes actualizaciones llegarán desde el móvil.</string>
     <string name="tvupdate_failed">No se pudo actualizar la TV: %1$s</string>
+    <string name="enhance_title">Mejora de imagen</string>
+    <string name="enhance_help">Escala el vídeo a la resolución de la pantalla y le da nitidez usando el procesador gráfico de la TV. Se desactiva sola si la TV no puede mantener la fluidez.</string>
 </resources>

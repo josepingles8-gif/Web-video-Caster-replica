@@ -37,7 +37,7 @@ class RemoteActivity : AppCompatActivity() {
         b.toolbar.subtitle = device?.name
         if (device?.type != DeviceType.BEAM) {
             // Auto/Max quality and the TV remote only exist on BeamCast receivers.
-            listOf(b.qualityTitle, b.quality, b.qualityHelp, b.tvRemote).forEach { it.visibility = android.view.View.GONE }
+            listOf(b.qualityTitle, b.quality, b.qualityHelp, b.enhance, b.enhanceHelp, b.tvRemote).forEach { it.visibility = android.view.View.GONE }
         }
         startPolling(device!!)
 
@@ -53,6 +53,13 @@ class RemoteActivity : AppCompatActivity() {
             store.quality = q
             qualityLocalUntil = System.currentTimeMillis() + 2500
             send(ControlAction.QUALITY, if (q == VideoQuality.AUTO) 0 else 1)
+        }
+        b.enhance.isChecked = store.enhance
+        b.enhance.setOnCheckedChangeListener { _, checked ->
+            if (updatingQuality) return@setOnCheckedChangeListener
+            store.enhance = checked
+            qualityLocalUntil = System.currentTimeMillis() + 4000
+            send(ControlAction.ENHANCE, if (checked) 1 else 0)
         }
         b.stop.setOnClickListener {
             send(ControlAction.STOP)
@@ -82,6 +89,9 @@ class RemoteActivity : AppCompatActivity() {
     private var volDragging = false
     private var updatingQuality = false
     private var qualityLocalUntil = 0L
+
+    private fun playingMedia(s: com.beamcast.protocol.PlaybackStatus) =
+        s.state == com.beamcast.protocol.PlaybackState.PLAYING || s.state == com.beamcast.protocol.PlaybackState.PAUSED
 
     private fun applyQualityChecked(q: String) {
         val id = if (q == VideoQuality.AUTO) R.id.qualityAuto else R.id.qualityMax
@@ -141,6 +151,13 @@ class RemoteActivity : AppCompatActivity() {
         b.duration.text = if (dur > 0) TimeFormat.format(dur) else ""
         if (device?.type == DeviceType.BEAM && System.currentTimeMillis() >= qualityLocalUntil) {
             applyQualityChecked(s.quality)
+            // The TV switches enhancement off by itself when its GPU cannot keep up.
+            if (playingMedia(s) && b.enhance.isChecked != s.enhance) {
+                updatingQuality = true
+                b.enhance.isChecked = s.enhance
+                updatingQuality = false
+                Store.get(this).enhance = s.enhance
+            }
             Store.get(this).quality = s.quality
         }
         if (!volDragging) b.volume.progress = s.volume.coerceIn(0, 100)

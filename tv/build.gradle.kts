@@ -40,6 +40,7 @@ dependencies {
     implementation(libs.media3.hls)
     implementation(libs.media3.dash)
     implementation(libs.media3.ui)
+    implementation(libs.media3.effect)
     implementation(libs.nanohttpd)
     implementation(libs.appcompat)
     implementation(libs.core.ktx)

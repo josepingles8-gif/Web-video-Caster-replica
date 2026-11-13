@@ -58,6 +58,8 @@ data class LoadRequest(
     val subtitleUrl: String? = null,
     /** One of [VideoQuality]. Only matters for adaptive (HLS/DASH) streams. */
     val quality: String = VideoQuality.MAX,
+    /** Upscale and sharpen the picture on the TV's GPU. The TV turns it off by itself if it cannot keep up. */
+    val enhance: Boolean = false,
 )
 
 object VideoQuality {
@@ -79,6 +81,8 @@ object ControlAction {
     const val VOLUME = "volume"
     /** value = 0 for [VideoQuality.AUTO], 1 for [VideoQuality.MAX]; applies to the current playback immediately. */
     const val QUALITY = "quality"
+    /** value = 1 to turn picture enhancement on, 0 to turn it off; applies to the current playback. */
+    const val ENHANCE = "enhance"
 }
 
 @Serializable
@@ -108,6 +112,8 @@ data class PlaybackStatus(
     val videoHeight: Int = 0,
     /** One of [VideoQuality]: the mode currently applied. */
     val quality: String = VideoQuality.MAX,
+    /** Whether picture enhancement is currently applied. */
+    val enhance: Boolean = false,
 )
 
 /** Keys accepted by POST /key. */

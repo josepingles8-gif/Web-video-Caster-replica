@@ -26,7 +26,7 @@ private suspend fun AppCompatActivity.load(device: Device, req: LoadRequest): Bo
         Toast.makeText(this, R.string.cast_headers_notice, Toast.LENGTH_LONG).show()
     }
     return try {
-        val r = if (device.type == DeviceType.BEAM) req.copy(quality = Store.get(this).quality) else req
+        val r = if (device.type == DeviceType.BEAM) req.copy(quality = Store.get(this).quality, enhance = Store.get(this).enhance) else req
         CastTargets.forDevice(device).load(device, r)
         startActivity(Intent(this, RemoteActivity::class.java))
         true

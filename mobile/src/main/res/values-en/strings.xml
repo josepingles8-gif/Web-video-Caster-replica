@@ -116,4 +116,6 @@
     <string name="tvupdate_current">The TV already has the latest version.</string>
     <string name="tvupdate_unsupported">The app on the TV predates this feature. Install the TV APK by hand one last time; later updates will come from the phone.</string>
     <string name="tvupdate_failed">Could not update the TV: %1$s</string>
+    <string name="enhance_title">Picture enhancement</string>
+    <string name="enhance_help">Upscales the video to the screen resolution and sharpens it on the TV\'s graphics chip. It turns itself off if the TV cannot keep playback smooth.</string>
 </resources>

@@ -18,6 +18,10 @@ class Store private constructor(ctx: Context) {
             prefs.edit().putString("device", v?.let { BeamProtocol.json.encodeToString(Device.serializer(), it) }).apply()
         }
 
+    var enhance: Boolean
+        get() = prefs.getBoolean("enhance", false)
+        set(v) { prefs.edit().putBoolean("enhance", v).apply() }
+
     var quality: String
         get() = prefs.getString("quality", VideoQuality.MAX) ?: VideoQuality.MAX
         set(v) { prefs.edit().putString("quality", v).apply() }
