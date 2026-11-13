@@ -11,9 +11,14 @@ android {
         applicationId = "com.beamcast.receiver"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
+        versionCode = (project.property("beamcastVersionCode") as String).toInt()
         versionName = "1.0"
     }
+    signingConfigs {
+        // Fixed key kept in the repository so every build can update an installed one in place.
+        getByName("debug") { storeFile = rootProject.file("keystore/debug.keystore") }
+    }
+    buildFeatures { buildConfig = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -36,6 +41,7 @@ dependencies {
     implementation(libs.media3.hls)
     implementation(libs.media3.dash)
     implementation(libs.media3.ui)
+    implementation(libs.media3.effect)
     implementation(libs.nanohttpd)
     implementation(libs.appcompat)
     implementation(libs.core.ktx)

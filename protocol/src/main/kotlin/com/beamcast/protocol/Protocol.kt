@@ -14,6 +14,8 @@ import kotlinx.serialization.json.Json
  *   POST /key      <- KeyRequest      -> RemoteResult   (TV remote: navigate the TV itself)
  *   POST /text     <- TextRequest     -> RemoteResult   (type into the focused text field on the TV)
  *
+ *   PUT  /update   <- receiver APK bytes               (the TV then asks the user to install it)
+ *
  * Errors: non-2xx with an ErrorResponse body. All bodies are UTF-8 JSON.
  */
 object BeamProtocol {
@@ -27,6 +29,7 @@ object BeamProtocol {
     const val PATH_CONTROL = "/control"
     const val PATH_KEY = "/key"
     const val PATH_TEXT = "/text"
+    const val PATH_UPDATE = "/update"
     const val CONTENT_TYPE = "application/json; charset=utf-8"
 
     val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; explicitNulls = false }
@@ -39,6 +42,12 @@ data class DeviceInfo(
     val protocolVersion: Int = BeamProtocol.VERSION,
     /** True when the receiver's system remote service (accessibility) is enabled, so /key can navigate the whole TV. */
     val remoteEnabled: Boolean = false,
+    /** Receiver build number; 0 for receivers that cannot be updated from the phone. */
+    val versionCode: Int = 0,
+    /** Stack trace of the receiver's last crash, if any, so the phone can show it. */
+    val lastCrash: String? = null,
+    /** False when picture enhancement crashed this receiver and is therefore disabled on it. */
+    val enhanceSupported: Boolean = true,
 )
 
 @Serializable
@@ -53,6 +62,8 @@ data class LoadRequest(
     val subtitleUrl: String? = null,
     /** One of [VideoQuality]. Only matters for adaptive (HLS/DASH) streams. */
     val quality: String = VideoQuality.MAX,
+    /** Upscale and sharpen the picture on the TV's GPU. The TV turns it off by itself if it cannot keep up. */
+    val enhance: Boolean = false,
 )
 
 object VideoQuality {
@@ -74,6 +85,8 @@ object ControlAction {
     const val VOLUME = "volume"
     /** value = 0 for [VideoQuality.AUTO], 1 for [VideoQuality.MAX]; applies to the current playback immediately. */
     const val QUALITY = "quality"
+    /** value = 1 to turn picture enhancement on, 0 to turn it off; applies to the current playback. */
+    const val ENHANCE = "enhance"
 }
 
 @Serializable
@@ -103,6 +116,8 @@ data class PlaybackStatus(
     val videoHeight: Int = 0,
     /** One of [VideoQuality]: the mode currently applied. */
     val quality: String = VideoQuality.MAX,
+    /** Whether picture enhancement is currently applied. */
+    val enhance: Boolean = false,
 )
 
 /** Keys accepted by POST /key. */

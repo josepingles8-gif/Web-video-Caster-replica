@@ -171,6 +171,21 @@
                 android:text="@string/quality_help"
                 android:textAppearance="?attr/textAppearanceBodySmall" />
 
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/enhance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/enhance_title"
+                android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+            <TextView
+                android:id="@+id/enhanceHelp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/enhance_help"
+                android:textAppearance="?attr/textAppearanceBodySmall" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/tvRemote"
                 style="@style/Widget.Material3.Button.TonalButton"

@@ -72,7 +72,7 @@
     <string name="quality_help">Auto: fewer pauses, may lower the resolution. Maximum: best resolution, may pause on slow Wi‑Fi.</string>
     <string name="action_tv_remote">TV remote control</string>
     <string name="tvremote_title">TV remote control</string>
-    <string name="tvremote_banner">To navigate the TV, enable “BeamCast Receiver” in the TV’s Settings &gt; Accessibility. Volume and playback work without it.</string>
+    <string name="tvremote_banner">To navigate the TV, enable “BeamCast Receiver” in the TV’s Settings &gt; Accessibility. Volume and playback work without it. If the TV has no Accessibility menu, turn on USB debugging in Developer options and open BeamCast Receiver.</string>
     <string name="tvremote_swipe_mode">Touch mode</string>
     <string name="tvremote_dpad_mode">D-pad mode</string>
     <string name="tvremote_swipe_hint">Swipe to move, tap to select</string>
@@ -107,4 +107,18 @@
     <string name="chromecast_session_failed">Could not start the Chromecast session.</string>
     <string name="chromecast_timeout">Timed out connecting to the Chromecast.</string>
     <string name="chromecast_not_connected">Not connected to a Chromecast.</string>
+    <string name="action_tv_update">Update TV app</string>
+    <string name="tvupdate_available">A new version of BeamCast is available for your TV. Send it now?</string>
+    <string name="tvupdate_send">Update</string>
+    <string name="tvupdate_later">Not now</string>
+    <string name="tvupdate_sending">Sending the update to the TV…</string>
+    <string name="tvupdate_sent">Update sent. Accept the installation on the TV with its remote, then open BeamCast Receiver again.</string>
+    <string name="tvupdate_current">The TV already has the latest version.</string>
+    <string name="tvupdate_unsupported">The app on the TV predates this feature. Install the TV APK by hand one last time; later updates will come from the phone.</string>
+    <string name="tvupdate_failed">Could not update the TV: %1$s</string>
+    <string name="enhance_title">Picture enhancement</string>
+    <string name="enhance_help">Upscales the video to the screen resolution and sharpens it on the TV\'s graphics chip. It turns itself off if the TV cannot keep playback smooth.</string>
+    <string name="tvcrash_title">The TV app closed because of an error</string>
+    <string name="tvcrash_message">Copy this report and send it so it can be fixed:\n\n%1$s</string>
+    <string name="tvcrash_copy">Copy report</string>
 </resources>

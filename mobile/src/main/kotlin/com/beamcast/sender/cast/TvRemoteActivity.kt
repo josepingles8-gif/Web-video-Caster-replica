@@ -75,6 +75,7 @@ class TvRemoteActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        EShareRemote.reset()
         val d = device ?: return
         lifecycleScope.launch {
             try { showRemoteEnabled(CastClient.info(d).remoteEnabled) } catch (e: CastException) { showStatus(e.message) }
@@ -82,7 +83,7 @@ class TvRemoteActivity : AppCompatActivity() {
     }
 
     private fun showRemoteEnabled(enabled: Boolean) {
-        b.banner.visibility = if (enabled) View.GONE else View.VISIBLE
+        b.banner.visibility = if (enabled || viaEShare) View.GONE else View.VISIBLE
     }
 
     private fun showStatus(msg: String?) {
@@ -101,8 +102,28 @@ class TvRemoteActivity : AppCompatActivity() {
         if (queue.trySend { job(d) }.isFailure) pending--
     }
 
+    /** True once the TV's built-in EShare service has accepted a key: navigation then goes through it. */
+    private var viaEShare = false
+
     private fun sendKey(key: String, repeat: Boolean) = enqueue(repeat) { d ->
-        try { handle(CastClient.key(d, key)) } catch (e: CastException) { showStatus(e.message) }
+        val code = EShareRemote.keyCode(key)
+        // Volume as a real key press changes the TV's own volume; the receiver can only change
+        // Android's media volume, which many TVs ignore.
+        val volume = key == RemoteKey.VOLUME_UP || key == RemoteKey.VOLUME_DOWN || key == RemoteKey.MUTE
+        if ((viaEShare || volume) && code != null && EShareRemote.send(d.host, code)) return@enqueue
+        try {
+            val r = CastClient.key(d, key)
+            // BeamCast Receiver cannot press keys on TVs without Accessibility or ADB; their EShare service can.
+            if (!r.ok && code != null && EShareRemote.send(d.host, code)) {
+                viaEShare = true
+                showRemoteEnabled(true)
+                showStatus(null)
+            } else {
+                handle(r)
+            }
+        } catch (e: CastException) {
+            showStatus(e.message)
+        }
     }
 
     private fun sendText() {

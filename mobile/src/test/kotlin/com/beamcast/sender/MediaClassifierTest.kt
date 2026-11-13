@@ -10,6 +10,27 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MediaClassifierTest {
+    @Test fun resolvesGoogleDriveFilePages() {
+        val id = "1AgOWxU2rAbCdEfGhIjKlMnOpQrStUvWx"
+        assertEquals(id, MediaClassifier.driveFileId("https://drive.google.com/file/d/$id/view?usp=sharing"))
+        assertEquals(id, MediaClassifier.driveFileId("https://drive.google.com/u/0/file/d/$id/preview"))
+        assertEquals(id, MediaClassifier.driveFileId("https://drive.google.com/open?usp=x&id=$id"))
+        assertNull(MediaClassifier.driveFileId("https://drive.google.com/drive/folders/$id"))
+        assertNull(MediaClassifier.driveFileId("https://example.com/file/d/$id/view"))
+        assertEquals(MediaKind.VIDEO, MediaClassifier.kindOfName("1543_13.mp4"))
+        assertNull(MediaClassifier.kindOfName("informe.pdf"))
+        assertNull(MediaClassifier.kindOfName("Google Drive"))
+        assertTrue(MediaClassifier.driveDirectUrl(id).contains("id=$id&export=download"))
+    }
+
+    @Test fun detectsRangedMediaWithoutExtension() {
+        assertTrue(MediaClassifier.looksLikeRangedMedia("https://cdn.a.com/stream/abc123?token=1", true))
+        assertFalse(MediaClassifier.looksLikeRangedMedia("https://cdn.a.com/stream/abc123", false))
+        assertFalse(MediaClassifier.looksLikeRangedMedia("https://a.com/doc.pdf", true))
+        assertFalse(MediaClassifier.looksLikeRangedMedia("https://r1.c.drive.google.com/videoplayback?itag=18", true))
+        assertFalse(MediaClassifier.looksLikeRangedMedia("https://a.com/seg1.ts", true))
+    }
+
     @Test fun classifiesByExtensionIgnoringQuery() {
         assertEquals(MediaKind.HLS, MediaClassifier.classify("https://a.com/v/master.M3U8?token=1#x"))
         assertEquals(MediaKind.DASH, MediaClassifier.classify("http://a.com/x.mpd"))

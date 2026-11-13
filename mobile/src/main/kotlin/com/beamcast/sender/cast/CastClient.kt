@@ -53,6 +53,29 @@ object CastClient {
             }
         }
 
+    /** Uploads a receiver APK; the TV then shows its install prompt. */
+    suspend fun update(d: Device, size: Long, open: () -> java.io.InputStream) = withContext(Dispatchers.IO) {
+        val conn = URL(d.baseUrl + BeamProtocol.PATH_UPDATE).openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "PUT"
+            conn.connectTimeout = 4000
+            conn.readTimeout = 60000
+            conn.doOutput = true
+            conn.setFixedLengthStreamingMode(size)
+            conn.setRequestProperty("Content-Type", "application/vnd.android.package-archive")
+            open().use { input -> conn.outputStream.use { input.copyTo(it) } }
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                val text = conn.errorStream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+                throw CastException(runCatching { json.decodeFromString<ErrorResponse>(text).error }.getOrNull() ?: "HTTP $code")
+            }
+        } catch (e: IOException) {
+            throw CastException(e.message ?: e.javaClass.simpleName, e)
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     suspend fun info(d: Device): DeviceInfo = json.decodeFromString(call(d, "GET", BeamProtocol.PATH_INFO))
     suspend fun status(d: Device): PlaybackStatus = json.decodeFromString(call(d, "GET", BeamProtocol.PATH_STATUS))
 

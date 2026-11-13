@@ -50,7 +50,9 @@ import com.beamcast.sender.ui.DevicePicker
 import com.beamcast.sender.ui.applySystemBarsPadding
 import com.beamcast.sender.ui.castLocalFile
 import com.beamcast.sender.ui.castRequest
+import com.beamcast.sender.ui.offerTvUpdate
 import com.beamcast.sender.ui.openTvRemote
+import com.beamcast.sender.ui.updateTvApp
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.launch
 
@@ -105,7 +107,7 @@ class BrowserActivity : AppCompatActivity() {
         })
 
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) { CastSession.device.collect { invalidateOptionsMenu() } }
+            repeatOnLifecycle(Lifecycle.State.STARTED) { CastSession.device.collect { invalidateOptionsMenu(); offerTvUpdate(it) } }
         }
         store.lastDevice?.let { d ->
             // A saved Chromecast is only usable with a live Cast session, so it is not restored.
@@ -130,6 +132,12 @@ class BrowserActivity : AppCompatActivity() {
         handleIntent(intent)
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Also surfaces a crash report after the TV app restarted while this one stayed open.
+        offerTvUpdate(CastSession.device.value)
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean("desktop", desktop)
@@ -143,6 +151,18 @@ class BrowserActivity : AppCompatActivity() {
 
     /** Returns true if a page load was started. Direct media links go straight to the cast flow. */
     private fun handleIntent(intent: Intent): Boolean {
+        val file = when (intent.action) {
+            Intent.ACTION_SEND -> sharedStream(intent)
+            Intent.ACTION_VIEW -> intent.data?.takeIf { it.scheme == "content" || it.scheme == "file" }
+            else -> null
+        }
+        if (file != null) {
+            if (Build.VERSION.SDK_INT >= 33 &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            castLocalFile(file)
+            return false
+        }
         val url = when (intent.action) {
             Intent.ACTION_VIEW -> intent.dataString
             Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)?.let { UrlInput.extractUrl(it) ?: UrlInput.resolve(it) }
@@ -161,6 +181,11 @@ class BrowserActivity : AppCompatActivity() {
         b.web.loadUrl(url)
         return true
     }
+
+    @Suppress("DEPRECATION")
+    private fun sharedStream(intent: Intent): android.net.Uri? =
+        if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, android.net.Uri::class.java)
+        else intent.getParcelableExtra(Intent.EXTRA_STREAM)
 
     @SuppressLint("SetJavaScriptEnabled", "AddJavascriptInterface")
     private fun setupWebView() {
@@ -196,6 +221,7 @@ class BrowserActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView, url: String) {
                 detector.pageUrl = url
+                detector.onPage(url, view.title)
                 view.evaluateJavascript(SCAN_JS, null)
                 if (MediaClassifier.isHttp(url)) {
                     store.history.add(Entry(view.title.orEmpty(), url, System.currentTimeMillis()))
@@ -208,6 +234,10 @@ class BrowserActivity : AppCompatActivity() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 b.progress.setProgressCompat(newProgress, true)
                 if (newProgress >= 100) b.progress.visibility = View.GONE
+            }
+
+            override fun onReceivedTitle(view: WebView, title: String?) {
+                detector.onPage(view.url, title)
             }
 
             override fun onShowCustomView(view: View, callback: CustomViewCallback) {
@@ -269,7 +299,9 @@ class BrowserActivity : AppCompatActivity() {
             if (store.bookmarks.contains(url)) R.string.bookmark_remove else R.string.bookmark_add,
         )
         val connected = CastSession.device.value != null
-        menu.findItem(R.id.action_tv_remote).isVisible = CastSession.device.value?.type.let { it == null || it == DeviceType.BEAM }
+        val beam = CastSession.device.value?.type.let { it == null || it == DeviceType.BEAM }
+        menu.findItem(R.id.action_tv_remote).isVisible = beam
+        menu.findItem(R.id.action_tv_update).isVisible = beam
         menu.findItem(R.id.action_cast).apply {
             setIcon(if (connected) R.drawable.ic_cast_connected else R.drawable.ic_cast)
             title = CastSession.device.value?.let { getString(R.string.connected_to, it.name) } ?: getString(R.string.action_cast)
@@ -285,6 +317,7 @@ class BrowserActivity : AppCompatActivity() {
             R.id.action_cast -> DevicePicker.show(this) { }
             R.id.action_media -> showMediaSheet()
             R.id.action_tv_remote -> openTvRemote()
+            R.id.action_tv_update -> updateTvApp()
             R.id.action_desktop -> { desktop = !desktop; applyDesktop(); b.web.reload(); invalidateOptionsMenu() }
             R.id.action_bookmark -> toggleBookmark()
             R.id.action_bookmarks -> entries.launch(Intent(this, EntriesActivity::class.java))

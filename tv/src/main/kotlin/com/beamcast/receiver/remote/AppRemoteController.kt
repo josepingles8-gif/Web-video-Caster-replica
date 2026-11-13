@@ -25,7 +25,7 @@ class AppRemoteController(context: Context) : RemoteController {
     private val app = context.applicationContext
     private val audio get() = app.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-    override fun enabled() = RemoteAccessibilityService.instance != null
+    override fun enabled() = RemoteAccessibilityService.instance != null || LocalAdb.ready
 
     override fun key(key: String): RemoteResult = onMain {
         when (key) {
@@ -36,9 +36,11 @@ class AppRemoteController(context: Context) : RemoteController {
             RemoteKey.REWIND -> media(KeyEvent.KEYCODE_MEDIA_REWIND)
             RemoteKey.FAST_FORWARD -> media(KeyEvent.KEYCODE_MEDIA_FAST_FORWARD)
             else -> {
-                val svc = RemoteAccessibilityService.instance
+                val viaService = RemoteAccessibilityService.instance?.let { navigate(it, key) }
                 when {
-                    svc != null -> navigate(svc, key)
+                    viaService?.ok == true -> viaService
+                    adbKey(key) -> result(true)
+                    viaService != null -> viaService
                     PlaybackManager.ui != null && playerKey(key) -> result(true)
                     else -> notEnabled()
                 }
@@ -47,8 +49,31 @@ class AppRemoteController(context: Context) : RemoteController {
     }
 
     override fun text(req: TextRequest): RemoteResult = onMain {
-        val svc = RemoteAccessibilityService.instance ?: return@onMain notEnabled()
-        editText(svc) { old -> if (req.replace) req.text else old + req.text }
+        val viaService = RemoteAccessibilityService.instance?.let { svc ->
+            editText(svc) { old -> if (req.replace) req.text else old + req.text }
+        }
+        when {
+            viaService?.ok == true -> viaService
+            req.text.isNotEmpty() && LocalAdb.text(req.text) -> result(true)
+            else -> viaService ?: notEnabled()
+        }
+    }
+
+    /** Real key events through the TV's own adbd (see [LocalAdb]); false when it is not connected. */
+    private fun adbKey(key: String): Boolean {
+        val code = when (key) {
+            RemoteKey.UP -> KeyEvent.KEYCODE_DPAD_UP
+            RemoteKey.DOWN -> KeyEvent.KEYCODE_DPAD_DOWN
+            RemoteKey.LEFT -> KeyEvent.KEYCODE_DPAD_LEFT
+            RemoteKey.RIGHT -> KeyEvent.KEYCODE_DPAD_RIGHT
+            RemoteKey.OK -> KeyEvent.KEYCODE_DPAD_CENTER
+            RemoteKey.BACK -> KeyEvent.KEYCODE_BACK
+            RemoteKey.HOME -> KeyEvent.KEYCODE_HOME
+            RemoteKey.RECENTS -> KeyEvent.KEYCODE_APP_SWITCH
+            RemoteKey.BACKSPACE -> KeyEvent.KEYCODE_DEL
+            else -> return false
+        }
+        return LocalAdb.key(code)
     }
 
     private fun result(ok: Boolean, message: String? = null) = RemoteResult(ok, enabled(), message)
@@ -59,6 +84,7 @@ class AppRemoteController(context: Context) : RemoteController {
      */
     private fun notEnabled(): RemoteResult {
         if (!RemoteSetup.tryAutoEnable(app)) {
+            LocalAdb.connect(app)
             Handler(Looper.getMainLooper()).post {
                 HomeActivity.current?.let { RemoteSetup.ensure(it, userRequested = true) {} }
             }

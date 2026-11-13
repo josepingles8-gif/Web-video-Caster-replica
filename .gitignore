@@ -6,3 +6,4 @@ local.properties
 .kotlin/
 *.keystore
 *.jks
+!keystore/debug.keystore

@@ -26,7 +26,7 @@ private suspend fun AppCompatActivity.load(device: Device, req: LoadRequest): Bo
         Toast.makeText(this, R.string.cast_headers_notice, Toast.LENGTH_LONG).show()
     }
     return try {
-        val r = if (device.type == DeviceType.BEAM) req.copy(quality = Store.get(this).quality) else req
+        val r = if (device.type == DeviceType.BEAM) req.copy(quality = Store.get(this).quality, enhance = Store.get(this).enhance) else req
         CastTargets.forDevice(device).load(device, r)
         startActivity(Intent(this, RemoteActivity::class.java))
         true
@@ -77,4 +77,83 @@ fun AppCompatActivity.openTvRemote() {
     }
     val current = CastSession.device.value
     if (current == null) DevicePicker.show(this) { open(it) } else open(current)
+}
+
+private const val TV_APK = "beamcast-tv.apk"
+private var updateOffered = false
+
+private fun AppCompatActivity.ownVersionCode(): Int =
+    androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(packageManager.getPackageInfo(packageName, 0)).toInt()
+
+/** Pushes the receiver APK bundled in this app to the TV, which then asks the user to install it. */
+private suspend fun AppCompatActivity.sendTvUpdate(device: Device) {
+    Toast.makeText(this, R.string.tvupdate_sending, Toast.LENGTH_SHORT).show()
+    val message = try {
+        val size = withContext(Dispatchers.IO) { assets.open(TV_APK).use { it.skip(Long.MAX_VALUE) } }
+        com.beamcast.sender.cast.CastClient.update(device, size) { assets.open(TV_APK) }
+        getString(R.string.tvupdate_sent)
+    } catch (e: Exception) {
+        getString(R.string.tvupdate_failed, e.message)
+    }
+    if (!isFinishing) androidx.appcompat.app.AlertDialog.Builder(this).setMessage(message).setPositiveButton(android.R.string.ok, null).show()
+}
+
+/** Menu action: update the receiver, explaining why when it cannot be done. */
+fun AppCompatActivity.updateTvApp() {
+    val device = CastSession.device.value
+    if (device == null) {
+        DevicePicker.show(this) { updateTvApp() }
+        return
+    }
+    if (device.type != DeviceType.BEAM) {
+        Toast.makeText(this, R.string.tv_remote_beam_only, Toast.LENGTH_LONG).show()
+        return
+    }
+    lifecycleScope.launch {
+        val info = try {
+            com.beamcast.sender.cast.CastClient.info(device)
+        } catch (e: Exception) {
+            Toast.makeText(this@updateTvApp, getString(R.string.tvupdate_failed, e.message), Toast.LENGTH_LONG).show()
+            return@launch
+        }
+        when {
+            info.versionCode == 0 -> Toast.makeText(this@updateTvApp, R.string.tvupdate_unsupported, Toast.LENGTH_LONG).show()
+            info.versionCode >= ownVersionCode() -> Toast.makeText(this@updateTvApp, R.string.tvupdate_current, Toast.LENGTH_LONG).show()
+            else -> sendTvUpdate(device)
+        }
+    }
+}
+
+/** Once per app run, offers the update when the connected receiver is older than the bundled one. */
+fun AppCompatActivity.offerTvUpdate(device: Device?) {
+    if (device == null || device.type != DeviceType.BEAM) return
+    lifecycleScope.launch {
+        val info = runCatching { com.beamcast.sender.cast.CastClient.info(device) }.getOrNull() ?: return@launch
+        showTvCrash(info.lastCrash)
+        val code = info.versionCode
+        if (updateOffered || isFinishing || code == 0 || code >= ownVersionCode()) return@launch
+        updateOffered = true
+        androidx.appcompat.app.AlertDialog.Builder(this@offerTvUpdate)
+            .setMessage(R.string.tvupdate_available)
+            .setPositiveButton(R.string.tvupdate_send) { _, _ -> lifecycleScope.launch { sendTvUpdate(device) } }
+            .setNegativeButton(R.string.tvupdate_later, null)
+            .show()
+    }
+}
+
+/** Shows the receiver's last crash report once, with a button to copy it. */
+private fun AppCompatActivity.showTvCrash(report: String?) {
+    val store = Store.get(this)
+    if (report.isNullOrBlank() || report == store.seenCrash || isFinishing) return
+    store.seenCrash = report
+    androidx.appcompat.app.AlertDialog.Builder(this)
+        .setTitle(R.string.tvcrash_title)
+        .setMessage(getString(R.string.tvcrash_message, report))
+        .setPositiveButton(R.string.tvcrash_copy) { _, _ ->
+            val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("BeamCast TV", report))
+            Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
+        }
+        .setNegativeButton(android.R.string.cancel, null)
+        .show()
 }

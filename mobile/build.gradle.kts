@@ -13,8 +13,12 @@ android {
         applicationId = "com.beamcast.sender"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
+        versionCode = (project.property("beamcastVersionCode") as String).toInt()
         versionName = "1.0"
+    }
+    signingConfigs {
+        // Fixed key kept in the repository so every build can update an installed one in place.
+        getByName("debug") { storeFile = rootProject.file("keystore/debug.keystore") }
     }
     buildTypes { release { isMinifyEnabled = false } }
     compileOptions {
@@ -22,9 +26,21 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures { viewBinding = true }
+    androidResources { noCompress += "apk" }
     lint { abortOnError = true }
     testOptions { unitTests.isReturnDefaultValues = true }
 }
+// The TV app travels inside the phone app, which can push it to the receiver (see TvUpdater).
+val tvApkDir = layout.buildDirectory.dir("generated/tvApk")
+val bundleTvApk by tasks.registering(Copy::class) {
+    dependsOn(":tv:assembleDebug")
+    from(project(":tv").layout.buildDirectory.file("outputs/apk/debug/tv-debug.apk"))
+    into(tvApkDir)
+    rename { "beamcast-tv.apk" }
+}
+android.sourceSets["main"].assets.srcDir(tvApkDir)
+tasks.matching { it.name.endsWith("Assets") || it.name.startsWith("lint") || it.name.contains("Lint") }.configureEach { dependsOn(bundleTvApk) }
+
 kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 
 dependencies {

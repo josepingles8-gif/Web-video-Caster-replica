@@ -16,6 +16,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -39,6 +40,8 @@ object PlaybackManager {
 
     const val SEEK_BACK_MS = 10_000L
     const val SEEK_FORWARD_MS = 30_000L
+    private const val DROP_WINDOW_MS = 15_000L
+    private const val DROP_LIMIT = 45
 
     private val imageExt = Regex("\\.(jpe?g|png|webp|gif|bmp)$", RegexOption.IGNORE_CASE)
     private val main = Handler(Looper.getMainLooper())
@@ -64,6 +67,10 @@ object PlaybackManager {
     private var serial = 0
     private var fixedVolume = 100
     private var quality = VideoQuality.MAX
+    private var enhance = false
+    private var lastRequest: LoadRequest? = null
+    private var droppedFrames = 0
+    private var droppedSince = 0L
 
     val active get() = hasMedia
 
@@ -78,6 +85,7 @@ object PlaybackManager {
         started = false
         error = null
         quality = normalizeQuality(req.quality)
+        enhance = req.enhance && EnhanceGuard.supported(app)
         title = req.title ?: req.url.substringBefore('?').substringAfterLast('/').ifBlank { null }
         url = req.url
         isImage = isImage(req)
@@ -105,6 +113,8 @@ object PlaybackManager {
     }
 
     private fun playMedia(req: LoadRequest) {
+        lastRequest = req
+        droppedFrames = 0
         val headers = req.headers.toMutableMap()
         val uaKey = headers.keys.firstOrNull { it.equals("User-Agent", true) }
         val ua = uaKey?.let { headers.remove(it) }
@@ -161,6 +171,21 @@ object PlaybackManager {
             .setLoadControl(loadControl)
             .setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT)
             .build()
+        if (enhance) {
+            EnhanceGuard.begin(app)
+            val screen = app.resources.displayMetrics
+            p.setVideoEffects(listOf(EnhanceEffect(screen.widthPixels, screen.heightPixels)))
+        }
+        p.addAnalyticsListener(object : AnalyticsListener {
+            override fun onDroppedVideoFrames(eventTime: AnalyticsListener.EventTime, droppedFrames: Int, elapsedMs: Long) {
+                if (!enhance) return
+                // The filter is too heavy for this TV's GPU: smooth playback matters more.
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - droppedSince > DROP_WINDOW_MS) { droppedSince = now; PlaybackManager.droppedFrames = 0 }
+                PlaybackManager.droppedFrames += droppedFrames
+                if (PlaybackManager.droppedFrames > DROP_LIMIT) main.post { if (enhance) setEnhance(false) }
+            }
+        })
         p.setAudioAttributes(
             AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
             true,
@@ -170,9 +195,17 @@ object PlaybackManager {
                 if (playbackState == Player.STATE_READY) started = true
                 ui?.onChanged()
             }
+            override fun onRenderedFirstFrame() { EnhanceGuard.done(app) }
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) { ui?.onChanged() }
             override fun onIsPlayingChanged(isPlaying: Boolean) { ui?.onChanged() }
             override fun onPlayerError(e: PlaybackException) {
+                if (enhance && (e.errorCode == PlaybackException.ERROR_CODE_VIDEO_FRAME_PROCESSING_FAILED ||
+                        e.errorCode == PlaybackException.ERROR_CODE_VIDEO_FRAME_PROCESSOR_INIT_FAILED)
+                ) {
+                    // The GPU cannot run the filter: carry on without it instead of failing playback.
+                    main.post { if (enhance) setEnhance(false) }
+                    return
+                }
                 error = "${e.errorCodeName}${e.cause?.message?.let { ": $it" } ?: ""}"
                 ui?.onChanged()
             }
@@ -193,6 +226,23 @@ object PlaybackManager {
         player?.let { p ->
             p.trackSelectionParameters = qualityParams(p.trackSelectionParameters.buildUpon(), q)
         }
+    }
+
+    /** Effects are fixed when a player is built, so toggling rebuilds it at the current position. */
+    private fun setEnhance(on: Boolean) {
+        if (enhance == on || (on && !EnhanceGuard.supported(app))) return
+        enhance = on
+        val req = lastRequest ?: return
+        val old = player ?: return
+        if (isImage) return
+        val position = old.currentPosition.coerceAtLeast(0)
+        val wasPlaying = old.playWhenReady
+        old.release()
+        player = null
+        error = null
+        playMedia(req.copy(startPositionMs = position))
+        player?.playWhenReady = wasPlaying
+        ui?.onLoaded()
     }
 
     fun status(): PlaybackStatus {
@@ -219,7 +269,7 @@ object PlaybackManager {
                 dur = if (p.duration == C.TIME_UNSET || p.isCurrentMediaItemLive) 0 else p.duration.coerceAtLeast(0)
             }
         }
-        return PlaybackStatus(state, pos, dur, volume(), if (hasMedia) title else null, if (hasMedia) url else null, error, height, quality)
+        return PlaybackStatus(state, pos, dur, volume(), if (hasMedia) title else null, if (hasMedia) url else null, error, height, quality, enhance && hasMedia)
     }
 
     fun control(req: ControlRequest): PlaybackStatus {
@@ -231,6 +281,7 @@ object PlaybackManager {
             ControlAction.SEEK -> p?.seekTo((req.value ?: 0).coerceAtLeast(0))
             ControlAction.SEEK_RELATIVE -> seekBy(req.value ?: 0)
             ControlAction.VOLUME -> setVolume((req.value ?: 0).coerceIn(0, 100).toInt())
+            ControlAction.ENHANCE -> setEnhance(req.value == 1L)
             ControlAction.QUALITY -> setQuality(if (req.value == 0L) VideoQuality.AUTO else VideoQuality.MAX)
         }
         return status()
@@ -260,6 +311,7 @@ object PlaybackManager {
     }
 
     private fun release() {
+        if (::app.isInitialized) EnhanceGuard.done(app)
         player?.release()
         player = null
         image = null

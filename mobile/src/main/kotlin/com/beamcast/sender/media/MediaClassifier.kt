@@ -7,11 +7,15 @@ object MediaClassifier {
     private val kinds = mapOf(
         "m3u8" to MediaKind.HLS, "mpd" to MediaKind.DASH,
         "mp4" to MediaKind.VIDEO, "webm" to MediaKind.VIDEO, "mkv" to MediaKind.VIDEO, "mov" to MediaKind.VIDEO,
+        "m4v" to MediaKind.VIDEO, "avi" to MediaKind.VIDEO, "3gp" to MediaKind.VIDEO,
         "mp3" to MediaKind.AUDIO, "m4a" to MediaKind.AUDIO, "aac" to MediaKind.AUDIO, "flac" to MediaKind.AUDIO,
+        "ogg" to MediaKind.AUDIO, "opus" to MediaKind.AUDIO, "wav" to MediaKind.AUDIO,
     )
     private val mimes = mapOf(
         "m3u8" to "application/x-mpegURL", "mpd" to "application/dash+xml",
         "mp4" to "video/mp4", "webm" to "video/webm", "mkv" to "video/x-matroska", "mov" to "video/quicktime",
+        "m4v" to "video/mp4", "avi" to "video/x-msvideo", "3gp" to "video/3gpp",
+        "ogg" to "audio/ogg", "opus" to "audio/ogg", "wav" to "audio/wav",
         "mp3" to "audio/mpeg", "m4a" to "audio/mp4", "aac" to "audio/aac", "flac" to "audio/flac",
         "jpg" to "image/jpeg", "jpeg" to "image/jpeg", "png" to "image/png", "gif" to "image/gif", "webp" to "image/webp",
     )
@@ -32,6 +36,31 @@ object MediaClassifier {
         if (!isHttp(url)) return null
         return kinds[extensionOf(url)]
     }
+
+    /** Media kind for a plain file name such as "clip.mp4" (no URL needed), or null. */
+    fun kindOfName(name: String): MediaKind? = kinds[extensionOf(name.trim())]
+
+    private val driveFile = Regex("^https?://(?:drive|docs)\\.google\\.com/(?:.*/)?file/d/([\\w-]{10,})", RegexOption.IGNORE_CASE)
+    private val driveQuery = Regex("^https?://drive\\.google\\.com/(?:open|uc)\\?(?:.*&)?id=([\\w-]{10,})", RegexOption.IGNORE_CASE)
+
+    /** File id of a Google Drive file page, or null. Drive plays through blob/adaptive streams that cannot be cast as-is. */
+    fun driveFileId(pageUrl: String): String? =
+        (driveFile.find(pageUrl) ?: driveQuery.find(pageUrl))?.groupValues?.get(1)
+
+    /** Direct download URL of a Drive file: the original file, with Range support. */
+    fun driveDirectUrl(id: String) = "https://drive.usercontent.google.com/download?id=$id&export=download&confirm=t"
+
+    /**
+     * True for a request that carries a Range header but has no media extension: this is how the
+     * browser fetches a <video>/<audio> file served from an extension-less URL.
+     */
+    fun looksLikeRangedMedia(url: String, hasRange: Boolean): Boolean {
+        if (!hasRange || !isHttp(url) || isSegment(url)) return false
+        if (url.contains("videoplayback")) return false // chunked adaptive streams, not castable
+        return extensionOf(url) !in nonMedia
+    }
+
+    private val nonMedia = setOf("js", "css", "json", "html", "htm", "pdf", "png", "jpg", "jpeg", "gif", "webp", "svg", "woff", "woff2", "ttf", "wasm", "zip", "vtt", "srt")
 
     fun guessMime(urlOrName: String): String? = mimes[extensionOf(urlOrName)]
 

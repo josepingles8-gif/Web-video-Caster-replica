@@ -74,6 +74,10 @@ class RequestRouter(
                 val v = requireNotNull(req.value) { "action 'quality' requires a value" }
                 require(v == 0L || v == 1L) { "quality value must be 0 (auto) or 1 (max)" }
             }
+            ControlAction.ENHANCE -> {
+                val v = requireNotNull(req.value) { "action 'enhance' requires a value" }
+                require(v == 0L || v == 1L) { "enhance value must be 0 (off) or 1 (on)" }
+            }
             else -> throw IllegalArgumentException("Unknown action: ${req.action}")
         }
         return ok(PlaybackStatus.serializer(), controller.control(req))
