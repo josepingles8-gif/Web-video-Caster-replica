@@ -8,6 +8,7 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import com.beamcast.receiver.R
@@ -67,8 +68,22 @@ object RemoteSetup {
         return false
     }
 
+    private fun canShow(activity: Activity) = !activity.isFinishing && !activity.isDestroyed
+
+    /** The activity can die between the check and show(); never let that crash the app. */
+    private fun safeShow(d: AlertDialog, onDone: () -> Unit) {
+        try {
+            d.show()
+            dialog = d
+        } catch (_: WindowManager.BadTokenException) {
+            dialog = null
+            onDone()
+        }
+    }
+
     fun showPrompt(activity: Activity, onDone: () -> Unit) {
         if (dialog?.isShowing == true) return
+        if (!canShow(activity)) return onDone()
         promptShown = true
         val d = AlertDialog.Builder(activity)
             .setTitle(R.string.remote_prompt_title)
@@ -84,12 +99,12 @@ object RemoteSetup {
             .setOnCancelListener { onDone() }
             .create()
         d.setOnShowListener { d.getButton(DialogInterface.BUTTON_POSITIVE).requestFocus() }
-        dialog = d
-        d.show()
+        safeShow(d, onDone)
     }
 
     private fun showManualPath(activity: Activity, onDone: () -> Unit) {
         dialog?.dismiss()
+        if (!canShow(activity)) return onDone()
         val d = AlertDialog.Builder(activity)
             .setTitle(R.string.remote_prompt_title)
             .setMessage(R.string.remote_manual_path)
@@ -97,8 +112,7 @@ object RemoteSetup {
             .setOnCancelListener { onDone() }
             .create()
         d.setOnShowListener { d.getButton(DialogInterface.BUTTON_POSITIVE).requestFocus() }
-        dialog = d
-        d.show()
+        safeShow(d, onDone)
     }
 
     fun ensure(activity: Activity, userRequested: Boolean, onDone: () -> Unit) {
