@@ -7,7 +7,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.beamcast.protocol.LoadRequest
 import com.beamcast.sender.R
-import com.beamcast.sender.cast.CastClient
+import com.beamcast.sender.cast.CastTargets
+import com.beamcast.sender.cast.DeviceType
 import com.beamcast.sender.cast.CastSession
 import com.beamcast.sender.cast.Device
 import com.beamcast.sender.cast.RemoteActivity
@@ -21,8 +22,12 @@ import kotlinx.coroutines.withContext
 
 private suspend fun AppCompatActivity.load(device: Device, req: LoadRequest): Boolean {
     Toast.makeText(this, getString(R.string.cast_sending, device.name), Toast.LENGTH_SHORT).show()
+    if (device.type != DeviceType.BEAM && req.headers.keys.any { it.equals("referer", true) || it.equals("cookie", true) }) {
+        Toast.makeText(this, R.string.cast_headers_notice, Toast.LENGTH_LONG).show()
+    }
     return try {
-        CastClient.load(device, req.copy(quality = Store.get(this).quality))
+        val r = if (device.type == DeviceType.BEAM) req.copy(quality = Store.get(this).quality) else req
+        CastTargets.forDevice(device).load(device, r)
         startActivity(Intent(this, RemoteActivity::class.java))
         true
     } catch (e: Exception) {
@@ -66,9 +71,10 @@ fun AppCompatActivity.castLocalFile(uri: Uri) {
 
 /** Opens the TV remote screen, asking the user to pick a device first if none is connected. */
 fun AppCompatActivity.openTvRemote() {
-    if (CastSession.device.value == null) {
-        DevicePicker.show(this) { startActivity(Intent(this, TvRemoteActivity::class.java)) }
-    } else {
-        startActivity(Intent(this, TvRemoteActivity::class.java))
+    fun open(d: Device) {
+        if (d.type == DeviceType.BEAM) startActivity(Intent(this, TvRemoteActivity::class.java))
+        else Toast.makeText(this, R.string.tv_remote_beam_only, Toast.LENGTH_LONG).show()
     }
+    val current = CastSession.device.value
+    if (current == null) DevicePicker.show(this) { open(it) } else open(current)
 }

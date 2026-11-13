@@ -35,6 +35,10 @@ class RemoteActivity : AppCompatActivity() {
         device = CastSession.device.value
         if (device == null) { finish(); return }
         b.toolbar.subtitle = device?.name
+        if (device?.type != DeviceType.BEAM) {
+            // Auto/Max quality and the TV remote only exist on BeamCast receivers.
+            listOf(b.qualityTitle, b.quality, b.qualityHelp, b.tvRemote).forEach { it.visibility = android.view.View.GONE }
+        }
         startPolling(device!!)
 
         b.play.setOnClickListener { send(if (playing) ControlAction.PAUSE else ControlAction.PLAY) }
@@ -91,7 +95,7 @@ class RemoteActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (true) {
-                    try { render(CastClient.status(d)) } catch (e: Exception) { showError(e.message) }
+                    try { render(CastTargets.forDevice(d).status(d)) } catch (e: Exception) { showError(e.message) }
                     delay(1000)
                 }
             }
@@ -101,7 +105,7 @@ class RemoteActivity : AppCompatActivity() {
     private fun send(action: String, value: Long? = null) {
         val d = device ?: return
         lifecycleScope.launch {
-            try { render(CastClient.control(d, action, value)) } catch (e: Exception) { showError(e.message) }
+            try { render(CastTargets.forDevice(d).control(d, action, value)) } catch (e: Exception) { showError(e.message) }
         }
     }
 
@@ -135,7 +139,7 @@ class RemoteActivity : AppCompatActivity() {
             b.position.text = TimeFormat.format(s.positionMs)
         }
         b.duration.text = if (dur > 0) TimeFormat.format(dur) else ""
-        if (System.currentTimeMillis() >= qualityLocalUntil) {
+        if (device?.type == DeviceType.BEAM && System.currentTimeMillis() >= qualityLocalUntil) {
             applyQualityChecked(s.quality)
             Store.get(this).quality = s.quality
         }

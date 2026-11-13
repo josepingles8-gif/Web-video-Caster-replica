@@ -37,7 +37,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.beamcast.protocol.LoadRequest
 import com.beamcast.sender.R
-import com.beamcast.sender.cast.CastClient
+import com.beamcast.sender.cast.CastTargets
+import com.beamcast.sender.cast.DeviceType
 import com.beamcast.sender.cast.CastSession
 import com.beamcast.sender.data.Entry
 import com.beamcast.sender.data.Store
@@ -107,8 +108,9 @@ class BrowserActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) { CastSession.device.collect { invalidateOptionsMenu() } }
         }
         store.lastDevice?.let { d ->
-            if (CastSession.device.value == null) lifecycleScope.launch {
-                runCatching { CastClient.info(d) }.onSuccess { if (CastSession.device.value == null) CastSession.device.value = d }
+            // A saved Chromecast is only usable with a live Cast session, so it is not restored.
+            if (CastSession.device.value == null && d.type != DeviceType.CHROMECAST) lifecycleScope.launch {
+                runCatching { CastTargets.forDevice(d).status(d) }.onSuccess { if (CastSession.device.value == null) CastSession.device.value = d }
             }
         }
 
@@ -267,6 +269,7 @@ class BrowserActivity : AppCompatActivity() {
             if (store.bookmarks.contains(url)) R.string.bookmark_remove else R.string.bookmark_add,
         )
         val connected = CastSession.device.value != null
+        menu.findItem(R.id.action_tv_remote).isVisible = CastSession.device.value?.type.let { it == null || it == DeviceType.BEAM }
         menu.findItem(R.id.action_cast).apply {
             setIcon(if (connected) R.drawable.ic_cast_connected else R.drawable.ic_cast)
             title = CastSession.device.value?.let { getString(R.string.connected_to, it.name) } ?: getString(R.string.action_cast)

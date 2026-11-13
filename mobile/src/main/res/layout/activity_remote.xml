@@ -130,6 +130,7 @@
                 android:max="100" />
 
             <TextView
+                android:id="@+id/qualityTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
@@ -163,6 +164,7 @@
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
             <TextView
+                android:id="@+id/qualityHelp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"

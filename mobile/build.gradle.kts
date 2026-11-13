@@ -37,5 +37,7 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.nanohttpd)
     implementation(libs.serialization.json)
+    implementation("com.google.android.gms:play-services-cast-framework:22.0.0")
+    implementation("androidx.mediarouter:mediarouter:1.7.0")
     testImplementation(libs.junit)
 }

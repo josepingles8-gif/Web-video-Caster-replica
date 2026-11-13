@@ -80,9 +80,13 @@ adb -s <ip-de-la-tv>:5555 install -r tv/build/outputs/apk/debug/<archivo>.apk
 - Algunos sitios vinculan el vídeo a la sesión o a la IP del teléfono; en esos casos la TV puede no reproducirlo.
 - Las APK de depuración no están firmadas para distribución; una build de release requiere su propia firma.
 
+## Otros destinos: Chromecast y DLNA
+
+El selector de dispositivos del teléfono también lista los Chromecast (Google Cast, receptor multimedia por defecto) y los televisores DLNA/UPnP de la red. Esos dispositivos descargan el vídeo por su cuenta y no pueden enviar las cabeceras de la página (Referer, cookies), así que algunos sitios solo funcionan con BeamCast Receiver. El selector de calidad y el mando de TV son exclusivos de BeamCast Receiver.
+
 ## Hoja de ruta
 
-- Destinos adicionales: Chromecast, DLNA y Roku.
+- Destinos adicionales: Roku y Fire TV sin receptor.
 - Selector de subtítulos.
 - Listas de reproducción y soporte IPTV.
 - Cola de reproducción.

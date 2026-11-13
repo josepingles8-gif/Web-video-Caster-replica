@@ -15,6 +15,12 @@ import com.beamcast.sender.cast.CastClient
 import com.beamcast.sender.cast.CastSession
 import com.beamcast.sender.cast.Device
 import com.beamcast.sender.cast.DeviceDiscovery
+import com.beamcast.sender.cast.DeviceType
+import com.beamcast.sender.cast.CastException
+import com.beamcast.sender.cast.chromecast.ChromecastDiscovery
+import com.beamcast.sender.cast.chromecast.ChromecastSupport
+import com.beamcast.sender.cast.dlna.DlnaDiscovery
+import kotlinx.coroutines.flow.combine
 import com.beamcast.sender.data.Store
 import com.beamcast.sender.data.UrlInput
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -31,13 +37,18 @@ object DevicePicker {
         var shown: List<Device> = emptyList()
         val saved = Store.get(activity).lastDevice
         val discovery = DeviceDiscovery(activity)
+        val dlna = DlnaDiscovery(activity)
+        val cast = ChromecastDiscovery(activity)
         val job = activity.lifecycleScope.launch {
-            discovery.devices.collect { found ->
-                val all = if (saved != null && found.none { it.host == saved.host && it.port == saved.port }) listOf(saved) + found else found
+            combine(discovery.devices, dlna.devices, cast.devices) { a, b, c -> a + b + c }.collect { found ->
+                // A saved Chromecast is only reachable while discovered, so only BeamCast/DLNA are offered from history.
+                val keep = saved != null && saved.type != DeviceType.CHROMECAST && found.none { it.key == saved.key }
+                val all = if (keep) listOf(saved!!) + found else found
                 shown = all
                 adapter.clear()
                 all.forEach { d ->
-                    adapter.add(if (d === saved) activity.getString(R.string.saved_device, d.label) else d.label)
+                    val row = activity.getString(R.string.device_row, d.label, typeLabel(activity, d.type))
+                    adapter.add(if (d === saved) activity.getString(R.string.saved_device, row) else row)
                 }
             }
         }
@@ -53,14 +64,39 @@ object DevicePicker {
         list.setOnItemClickListener { _, _, pos, _ ->
             val d = shown.getOrNull(pos) ?: return@setOnItemClickListener
             dialog.dismiss()
-            CastSession.select(activity, d)
-            Toast.makeText(activity, activity.getString(R.string.connected_to, d.name), Toast.LENGTH_SHORT).show()
-            onPicked(d)
+            if (d.type == DeviceType.CHROMECAST) {
+                Toast.makeText(activity, activity.getString(R.string.chromecast_connecting, d.name), Toast.LENGTH_SHORT).show()
+                activity.lifecycleScope.launch {
+                    try {
+                        ChromecastSupport.connect(activity, d)
+                    } catch (e: CastException) {
+                        Toast.makeText(activity, e.message, Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+                    selected(activity, d, onPicked)
+                }
+            } else selected(activity, d, onPicked)
         }
-        dialog.setOnDismissListener { job.cancel(); discovery.stop() }
+        dialog.setOnDismissListener { job.cancel(); discovery.stop(); dlna.stop(); cast.stop() }
         dialog.show()
         discovery.start()
+        dlna.start()
+        cast.start()
     }
+
+    private fun selected(activity: AppCompatActivity, d: Device, onPicked: (Device) -> Unit) {
+        CastSession.select(activity, d)
+        Toast.makeText(activity, activity.getString(R.string.connected_to, d.name), Toast.LENGTH_SHORT).show()
+        onPicked(d)
+    }
+
+    fun typeLabel(ctx: android.content.Context, t: DeviceType): String = ctx.getString(
+        when (t) {
+            DeviceType.BEAM -> R.string.type_beam
+            DeviceType.DLNA -> R.string.type_dlna
+            DeviceType.CHROMECAST -> R.string.type_chromecast
+        },
+    )
 
     fun addByIp(activity: AppCompatActivity, onPicked: (Device) -> Unit) {
         val pad = (20 * activity.resources.displayMetrics.density).toInt()

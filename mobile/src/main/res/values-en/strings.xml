@@ -95,4 +95,16 @@
     <string name="key_rewind">Rewind</string>
     <string name="key_fast_forward">Fast forward</string>
     <string name="key_backspace">Delete character</string>
+    <string name="device_row">%1$s · %2$s</string>
+    <string name="type_beam">BeamCast</string>
+    <string name="type_dlna">DLNA</string>
+    <string name="type_chromecast">Chromecast</string>
+    <string name="cast_headers_notice">This site may not play on this device type; BeamCast Receiver is recommended.</string>
+    <string name="tv_remote_beam_only">The TV remote is only available with BeamCast Receiver.</string>
+    <string name="chromecast_connecting">Connecting to %1$s…</string>
+    <string name="chromecast_unavailable">Chromecast is not available on this device.</string>
+    <string name="chromecast_not_found">Chromecast not found.</string>
+    <string name="chromecast_session_failed">Could not start the Chromecast session.</string>
+    <string name="chromecast_timeout">Timed out connecting to the Chromecast.</string>
+    <string name="chromecast_not_connected">Not connected to a Chromecast.</string>
 </resources>
