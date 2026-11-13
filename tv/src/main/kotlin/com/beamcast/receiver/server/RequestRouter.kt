@@ -5,8 +5,12 @@ import com.beamcast.protocol.ControlAction
 import com.beamcast.protocol.ControlRequest
 import com.beamcast.protocol.DeviceInfo
 import com.beamcast.protocol.ErrorResponse
+import com.beamcast.protocol.KeyRequest
 import com.beamcast.protocol.LoadRequest
 import com.beamcast.protocol.PlaybackStatus
+import com.beamcast.protocol.RemoteKey
+import com.beamcast.protocol.RemoteResult
+import com.beamcast.protocol.TextRequest
 import kotlinx.serialization.KSerializer
 
 /** What the HTTP layer needs from the player. Implementations must be thread-safe (called from server threads). */
@@ -16,11 +20,19 @@ interface PlayerController {
     fun control(request: ControlRequest): PlaybackStatus
 }
 
+/** TV-wide remote control (accessibility-backed on device). Implementations must be thread-safe. */
+interface RemoteController {
+    fun enabled(): Boolean
+    fun key(key: String): RemoteResult
+    fun text(req: TextRequest): RemoteResult
+}
+
 data class HttpResult(val status: Int, val body: String, val allow: String? = null)
 
 /** Android-free routing and JSON handling for the BeamCast protocol. */
 class RequestRouter(
     private val controller: PlayerController,
+    private val remote: RemoteController,
     private val deviceInfo: () -> DeviceInfo,
 ) {
     fun handle(method: String, rawPath: String, body: String?): HttpResult {
@@ -28,10 +40,12 @@ class RequestRouter(
         val verb = method.uppercase()
         return try {
             when (path) {
-                BeamProtocol.PATH_INFO -> get(verb) { ok(DeviceInfo.serializer(), deviceInfo()) }
+                BeamProtocol.PATH_INFO -> get(verb) { ok(DeviceInfo.serializer(), deviceInfo().copy(remoteEnabled = remote.enabled())) }
                 BeamProtocol.PATH_STATUS -> get(verb) { ok(PlaybackStatus.serializer(), controller.status()) }
                 BeamProtocol.PATH_LOAD -> post(verb) { load(body) }
                 BeamProtocol.PATH_CONTROL -> post(verb) { control(body) }
+                BeamProtocol.PATH_KEY -> post(verb) { key(body) }
+                BeamProtocol.PATH_TEXT -> post(verb) { text(body) }
                 else -> error(404, "Unknown path: $path")
             }
         } catch (e: IllegalArgumentException) {
@@ -56,9 +70,24 @@ class RequestRouter(
             ControlAction.PLAY, ControlAction.PAUSE, ControlAction.STOP -> Unit
             ControlAction.SEEK, ControlAction.SEEK_RELATIVE, ControlAction.VOLUME ->
                 requireNotNull(req.value) { "action '${req.action}' requires a value" }
+            ControlAction.QUALITY -> {
+                val v = requireNotNull(req.value) { "action 'quality' requires a value" }
+                require(v == 0L || v == 1L) { "quality value must be 0 (auto) or 1 (max)" }
+            }
             else -> throw IllegalArgumentException("Unknown action: ${req.action}")
         }
         return ok(PlaybackStatus.serializer(), controller.control(req))
+    }
+
+    private fun key(body: String?): HttpResult {
+        val req = parse(KeyRequest.serializer(), body)
+        require(req.key in RemoteKey.ALL) { "Unknown key: ${req.key}" }
+        return ok(RemoteResult.serializer(), remote.key(req.key))
+    }
+
+    private fun text(body: String?): HttpResult {
+        val req = parse(TextRequest.serializer(), body)
+        return ok(RemoteResult.serializer(), remote.text(req))
     }
 
     private fun <T> parse(s: KSerializer<T>, body: String?): T {

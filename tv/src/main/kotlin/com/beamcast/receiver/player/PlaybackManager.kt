@@ -23,6 +23,7 @@ import com.beamcast.protocol.ControlRequest
 import com.beamcast.protocol.LoadRequest
 import com.beamcast.protocol.PlaybackState
 import com.beamcast.protocol.PlaybackStatus
+import com.beamcast.protocol.VideoQuality
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
@@ -61,6 +62,7 @@ object PlaybackManager {
     private var started = false
     private var serial = 0
     private var fixedVolume = 100
+    private var quality = VideoQuality.MAX
 
     val active get() = hasMedia
 
@@ -74,6 +76,7 @@ object PlaybackManager {
         hasMedia = true
         started = false
         error = null
+        quality = normalizeQuality(req.quality)
         title = req.title ?: req.url.substringBefore('?').substringAfterLast('/').ifBlank { null }
         url = req.url
         isImage = isImage(req)
@@ -146,11 +149,7 @@ object PlaybackManager {
         // Quality first: on a TV always pick the best rendition the decoder supports instead of
         // adapting down to the bandwidth estimate or to a small viewport, and buffer further ahead.
         val selector = DefaultTrackSelector(app)
-        selector.parameters = selector.buildUponParameters()
-            .setForceHighestSupportedBitrate(true)
-            .clearViewportSizeConstraints()
-            .clearVideoSizeConstraints()
-            .build()
+        selector.parameters = qualityParams(selector.buildUponParameters(), quality)
         val meter = DefaultBandwidthMeter.Builder(app).setInitialBitrateEstimate(25_000_000L).build()
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(30_000, 120_000, 2_500, 5_000)
@@ -178,6 +177,21 @@ object PlaybackManager {
             }
         })
         return p
+    }
+
+    private fun normalizeQuality(q: String) = if (q == VideoQuality.AUTO) VideoQuality.AUTO else VideoQuality.MAX
+
+    private fun qualityParams(b: DefaultTrackSelector.Parameters.Builder, q: String) =
+        b.setForceHighestSupportedBitrate(q == VideoQuality.MAX)
+            .clearViewportSizeConstraints()
+            .clearVideoSizeConstraints()
+            .build()
+
+    private fun setQuality(q: String) {
+        quality = q
+        player?.let { p ->
+            p.trackSelectionParameters = qualityParams(p.trackSelectionParameters.buildUpon(), q)
+        }
     }
 
     fun status(): PlaybackStatus {
