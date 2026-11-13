@@ -39,7 +39,7 @@ class ReceiverService : Service() {
         val router = RequestRouter(AppPlayerController(this), AppRemoteController(this)) {
             val pkg = runCatching { packageManager.getPackageInfo(packageName, 0) }.getOrNull()
             val code = pkg?.let { androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(it).toInt() } ?: 0
-            DeviceInfo(DevicePrefs.name(this), pkg?.versionName ?: "1.0", versionCode = code)
+            DeviceInfo(DevicePrefs.name(this), pkg?.versionName ?: "1.0", versionCode = code, lastCrash = CrashLog.read(this), enhanceSupported = com.beamcast.receiver.player.EnhanceGuard.supported(this))
         }
         try {
             val s = BeamServer.startWithFallback(router) { apk -> com.beamcast.receiver.update.SelfUpdater.install(this, apk) }

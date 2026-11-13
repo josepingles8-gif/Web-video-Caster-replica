@@ -118,4 +118,7 @@
     <string name="tvupdate_failed">No se pudo actualizar la TV: %1$s</string>
     <string name="enhance_title">Mejora de imagen</string>
     <string name="enhance_help">Escala el vídeo a la resolución de la pantalla y le da nitidez usando el procesador gráfico de la TV. Se desactiva sola si la TV no puede mantener la fluidez.</string>
+    <string name="tvcrash_title">La app de la TV se cerró por un error</string>
+    <string name="tvcrash_message">Copia este informe y envíalo para poder corregirlo:\n\n%1$s</string>
+    <string name="tvcrash_copy">Copiar informe</string>
 </resources>

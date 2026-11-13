@@ -118,4 +118,7 @@
     <string name="tvupdate_failed">Could not update the TV: %1$s</string>
     <string name="enhance_title">Picture enhancement</string>
     <string name="enhance_help">Upscales the video to the screen resolution and sharpens it on the TV\'s graphics chip. It turns itself off if the TV cannot keep playback smooth.</string>
+    <string name="tvcrash_title">The TV app closed because of an error</string>
+    <string name="tvcrash_message">Copy this report and send it so it can be fixed:\n\n%1$s</string>
+    <string name="tvcrash_copy">Copy report</string>
 </resources>

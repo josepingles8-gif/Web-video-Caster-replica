@@ -126,9 +126,11 @@ fun AppCompatActivity.updateTvApp() {
 
 /** Once per app run, offers the update when the connected receiver is older than the bundled one. */
 fun AppCompatActivity.offerTvUpdate(device: Device?) {
-    if (device == null || device.type != DeviceType.BEAM || updateOffered) return
+    if (device == null || device.type != DeviceType.BEAM) return
     lifecycleScope.launch {
-        val code = runCatching { com.beamcast.sender.cast.CastClient.info(device).versionCode }.getOrNull() ?: return@launch
+        val info = runCatching { com.beamcast.sender.cast.CastClient.info(device) }.getOrNull() ?: return@launch
+        showTvCrash(info.lastCrash)
+        val code = info.versionCode
         if (updateOffered || isFinishing || code == 0 || code >= ownVersionCode()) return@launch
         updateOffered = true
         androidx.appcompat.app.AlertDialog.Builder(this@offerTvUpdate)
@@ -137,4 +139,21 @@ fun AppCompatActivity.offerTvUpdate(device: Device?) {
             .setNegativeButton(R.string.tvupdate_later, null)
             .show()
     }
+}
+
+/** Shows the receiver's last crash report once, with a button to copy it. */
+private fun AppCompatActivity.showTvCrash(report: String?) {
+    val store = Store.get(this)
+    if (report.isNullOrBlank() || report == store.seenCrash || isFinishing) return
+    store.seenCrash = report
+    androidx.appcompat.app.AlertDialog.Builder(this)
+        .setTitle(R.string.tvcrash_title)
+        .setMessage(getString(R.string.tvcrash_message, report))
+        .setPositiveButton(R.string.tvcrash_copy) { _, _ ->
+            val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("BeamCast TV", report))
+            Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
+        }
+        .setNegativeButton(android.R.string.cancel, null)
+        .show()
 }

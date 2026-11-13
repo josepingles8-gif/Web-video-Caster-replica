@@ -18,6 +18,7 @@ android {
         // Fixed key kept in the repository so every build can update an installed one in place.
         getByName("debug") { storeFile = rootProject.file("keystore/debug.keystore") }
     }
+    buildFeatures { buildConfig = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

@@ -44,6 +44,10 @@ data class DeviceInfo(
     val remoteEnabled: Boolean = false,
     /** Receiver build number; 0 for receivers that cannot be updated from the phone. */
     val versionCode: Int = 0,
+    /** Stack trace of the receiver's last crash, if any, so the phone can show it. */
+    val lastCrash: String? = null,
+    /** False when picture enhancement crashed this receiver and is therefore disabled on it. */
+    val enhanceSupported: Boolean = true,
 )
 
 @Serializable

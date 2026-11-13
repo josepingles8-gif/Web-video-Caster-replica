@@ -14,6 +14,8 @@ import javax.net.ssl.X509TrustManager
 class ReceiverApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        CrashLog.install(this)
+        com.beamcast.receiver.player.EnhanceGuard.startup(this)
         // Old TVs ship an outdated certificate store (Android 7 lacks Let's Encrypt's root, among
         // others), so many HTTPS video hosts fail with "Trust anchor for certification path not found".
         if (Build.VERSION.SDK_INT < 29) runCatching { trustBundledRoots() }

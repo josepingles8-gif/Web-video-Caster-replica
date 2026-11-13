@@ -85,7 +85,7 @@ object PlaybackManager {
         started = false
         error = null
         quality = normalizeQuality(req.quality)
-        enhance = req.enhance
+        enhance = req.enhance && EnhanceGuard.supported(app)
         title = req.title ?: req.url.substringBefore('?').substringAfterLast('/').ifBlank { null }
         url = req.url
         isImage = isImage(req)
@@ -172,6 +172,7 @@ object PlaybackManager {
             .setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT)
             .build()
         if (enhance) {
+            EnhanceGuard.begin(app)
             val screen = app.resources.displayMetrics
             p.setVideoEffects(listOf(EnhanceEffect(screen.widthPixels, screen.heightPixels)))
         }
@@ -194,6 +195,7 @@ object PlaybackManager {
                 if (playbackState == Player.STATE_READY) started = true
                 ui?.onChanged()
             }
+            override fun onRenderedFirstFrame() { EnhanceGuard.done(app) }
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) { ui?.onChanged() }
             override fun onIsPlayingChanged(isPlaying: Boolean) { ui?.onChanged() }
             override fun onPlayerError(e: PlaybackException) {
@@ -228,7 +230,7 @@ object PlaybackManager {
 
     /** Effects are fixed when a player is built, so toggling rebuilds it at the current position. */
     private fun setEnhance(on: Boolean) {
-        if (enhance == on) return
+        if (enhance == on || (on && !EnhanceGuard.supported(app))) return
         enhance = on
         val req = lastRequest ?: return
         val old = player ?: return
@@ -309,6 +311,7 @@ object PlaybackManager {
     }
 
     private fun release() {
+        if (::app.isInitialized) EnhanceGuard.done(app)
         player?.release()
         player = null
         image = null

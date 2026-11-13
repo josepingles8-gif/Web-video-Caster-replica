@@ -132,6 +132,12 @@ class BrowserActivity : AppCompatActivity() {
         handleIntent(intent)
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Also surfaces a crash report after the TV app restarted while this one stayed open.
+        offerTvUpdate(CastSession.device.value)
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean("desktop", desktop)

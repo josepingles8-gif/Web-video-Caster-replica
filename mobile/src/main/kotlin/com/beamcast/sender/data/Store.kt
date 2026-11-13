@@ -18,6 +18,11 @@ class Store private constructor(ctx: Context) {
             prefs.edit().putString("device", v?.let { BeamProtocol.json.encodeToString(Device.serializer(), it) }).apply()
         }
 
+    /** Last TV crash report already shown to the user. */
+    var seenCrash: String
+        get() = prefs.getString("seen_crash", "") ?: ""
+        set(v) { prefs.edit().putString("seen_crash", v).apply() }
+
     var enhance: Boolean
         get() = prefs.getBoolean("enhance", false)
         set(v) { prefs.edit().putBoolean("enhance", v).apply() }
